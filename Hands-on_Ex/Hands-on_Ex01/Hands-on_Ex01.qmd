@@ -356,21 +356,14 @@ ggplot(data=exam_data,
 
 ## Essential Grammatical Elements in ggplot2: themes
 
-Themes control elements of the graph not related to the data. For example:
--   background colour
--   size of fonts
--   gridlines
--   colour of labels
+Themes control elements of the graph not related to the data. For example: - background colour - size of fonts - gridlines - colour of labels
 
-Built-in themes include:
--   theme_gray() (default)
--   theme_bw()
--   theme_classic()
+Built-in themes include: - theme_gray() (default) - theme_bw() - theme_classic()
 
 A list of theme can be found at this link. Each theme element can be conceived of as either a line (e.g. x-axis), a rectangle (e.g. graph background), or text (e.g. axis title).
 
-
 ### Working with theme
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -379,8 +372,8 @@ ggplot(data=exam_data,
   theme_gray()
 ```
 
-
 A horizontal bar chart plotted using theme_classic().
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -389,8 +382,8 @@ ggplot(data=exam_data,
   theme_classic()
 ```
 
-
 A horizontal bar chart plotted using theme_minimal().
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
