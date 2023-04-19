@@ -2,8 +2,6 @@
 title: "About"
 ---
 
-About this site
+# About
 
-```{r}
-1 + 1
-```
+This website consists of a collection of the works done in **ISSS608 Visual Analytics & Applications** course.

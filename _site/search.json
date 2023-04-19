@@ -4,14 +4,14 @@
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
+    "text": "About\nThis website consists of a collection of the works done in ISSS608 - Visual Analytics & Applications course during my MITB (Analytics) journey."
   },
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "ISSS608-VAA",
+    "title": "ISSS608 Visual Analytics & Applications",
     "section": "",
-    "text": "Welcome to ISSS608 Visual Analytics and Applications. In this website, you will find my coursework prepared for this course."
+    "text": "Welcome to Ong Chae Hui’s web portal for the works done in ISSS608 Visual Analytics and Applications.\nIn this website, you will find all the coursework (Hands-On, In-Class and Take-Home Exercises) prepared for this course."
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
@@ -75,5 +75,68 @@
     "title": "Hands-on Exercise 1",
     "section": "",
     "text": "Themes control elements of the graph not related to the data. For example: - background colour - size of fonts - gridlines - colour of labels\nBuilt-in themes include: - theme_gray() (default) - theme_bw() - theme_classic()\nA list of theme can be found at this link. Each theme element can be conceived of as either a line (e.g. x-axis), a rectangle (e.g. graph background), or text (e.g. axis title).\n\n\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_gray()\n\n\n\n\nA horizontal bar chart plotted using theme_classic().\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\nA horizontal bar chart plotted using theme_minimal().\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html",
+    "title": "In-Class Exercise 1",
+    "section": "",
+    "text": "Code\npacman::p_load(tidyverse)\n\n\n\n\n\n\n\nCode\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#using-p_load-of-pacman-package-to-load-tidyverse",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#using-p_load-of-pacman-package-to-load-tidyverse",
+    "title": "In-Class Exercise 1",
+    "section": "",
+    "text": "pacman::p_load(tidyverse)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#importing-data",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#importing-data",
+    "title": "In-Class Exercise 1",
+    "section": "",
+    "text": "exam_data &lt;- read_csv(\"data/Exam_data.csv\")\n\nRows: 322 Columns: 7\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr (4): ID, CLASS, GENDER, RACE\ndbl (3): ENGLISH, MATHS, SCIENCE\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message."
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#getting-started",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#getting-started",
+    "title": "In-Class Exercise 1",
+    "section": "",
+    "text": "Code\npacman::p_load(tidyverse)\n\n\n\n\n\n\n\nCode\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#working-with-theme",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#working-with-theme",
+    "title": "In-Class Exercise 1",
+    "section": "Working with theme",
+    "text": "Working with theme\nPlot a horizontal bar chart\n\nChange the colours of plot panel background of theme_minimal() to light blue and the color of gridlines to white\n\n\n\nCode\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal() + \n  theme(\n    panel.background = element_rect(fill = \"lightblue\", colour = \"lightblue\", \n                                    linewidth = 0.5, linetype = \"solid\"),\n    panel.grid.major = element_line(linewidth = 0.5, linetype = 'solid', colour = \"white\"), \n    panel.grid.minor = element_line(linewidth = 0.25, linetype = 'solid', colour = \"white\"))"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-i",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-i",
+    "title": "In-Class Exercise 1",
+    "section": "Designing Data-drive Graphics for Analysis I",
+    "text": "Designing Data-drive Graphics for Analysis I\nIn this example, we will revise the vertical bar chart to provide additional information.\nThe left tab panel shows the original vertical bar chart, while the right panel shows the revised version of the vertical bar chart.\n\nOriginalRevised\n\n\nA simple vertical bar chart for frequency analysis.\nCritics:\n\ny-axis label is not clear (i.e. count)\nTo support effective comparison, the bars should be sorted by their respective frequencies.\nFor static graph, frequency values should be added to provide addition information.\n\n\n\nCode\nggplot(data=exam_data,\n       aes(x = RACE)) +\n  geom_bar()\n\n\n\n\n\n\n\nThe revised vertical bar chart will show:\n\nThe y-axis will be changed to the Total Number of Pupils\nIn order to support effective comparison, we will sort the bars by their respective frequencies\nSince this is a static graph, we will also include the frequency values to provide additional information.\n\n\n\nCode\nggplot(data = exam_data,\n       aes(x = reorder(RACE, RACE,\n                       function(x)-length(x)))) +\n  geom_bar() + \n  ylim(0,220) +\n  geom_text(stat=\"count\", \n      aes(label=paste0(after_stat(count), \", \", \n      round(after_stat(count)/sum(after_stat(count))*100, 1), \"%\")),\n      vjust=-1) +\n  xlab(\"RACE\") +\n  ylab(\"NO. OF\\nPUPILS\") +\n  theme(axis.title.y=element_text(angle = 0))"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-ii",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-ii",
+    "title": "In-Class Exercise 1",
+    "section": "Designing Data-drive Graphics for Analysis II",
+    "text": "Designing Data-drive Graphics for Analysis II\nIn this example, we will improve the aesthetics of the histogram.\nThe left tab panel shows the original version of the histogram plotted, while the right panel shows the revised version, with added information of the mean and median lines.\n\nOriginalRevised\n\n\nA simple histogram.\n\n\nCode\nggplot(data=exam_data,\n       aes(x = MATHS)) +\n  geom_histogram(bins=30)\n\n\n\n\n\n\n\nWe will\n\nChange the fill color to light blue and line color to black\nInclude the mean and median lines onto the histogram plot\n\n\n\nCode\nggplot(data = exam_data,\n       aes(x=MATHS)) +\n  geom_histogram(bins=20,\n                 fill=\"light blue\",\n                 color=\"black\") +\n  geom_vline(aes(xintercept=mean(MATHS, na.rm=T)),\n             color=\"red\", \n             linetype=\"dashed\", \n             linewidth=1) +\n  geom_vline(aes(xintercept=median(MATHS, na.rm=T)),\n             color=\"grey30\",\n             linetype=\"dashed\", \n             linewidth=1)"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-iii",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-iii",
+    "title": "In-Class Exercise 1",
+    "section": "Designing Data-drive Graphics for Analysis III",
+    "text": "Designing Data-drive Graphics for Analysis III\nThe original histograms on the left tab (Original) are elegantly designed but not informative. This is because they only reveal the distribution of English scores by gender but without context such as all pupils.\nIn this example, on the right tab (Revised), we will show the distribution of English scores by gender and also include the histogram of all pupils at the background.\n\nOriginalRevised\n\n\n\n\nCode\nggplot(data=exam_data, aes(x = ENGLISH)) + \n  geom_histogram(bins=30) +\n    facet_grid(~ GENDER)\n\n\n\n\n\n\n\n\n\nCode\nbackgd_data &lt;- exam_data   \nd_bg &lt;- backgd_data[, -3]\n\nggplot(backgd_data, aes(x = ENGLISH, fill = GENDER)) +\n  geom_histogram(data = d_bg, fill = \"grey\", alpha = .5, bins=30) +\n  geom_histogram(colour = \"black\", bins=30) +\n  facet_wrap(~ GENDER) +\n  guides(none) +  \n  theme_bw()"
+  },
+  {
+    "objectID": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-iv",
+    "href": "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html#designing-data-drive-graphics-for-analysis-iv",
+    "title": "In-Class Exercise 1",
+    "section": "Designing Data-drive Graphics for Analysis IV",
+    "text": "Designing Data-drive Graphics for Analysis IV\nIn this example, we will beautify (makeover) the scatterplot from left tab (Original) to right tab (Revised)\n\nOriginalRevised\n\n\n\n\nCode\nggplot(data=exam_data, \n       aes(x=MATHS, y=ENGLISH)) +\n  geom_point() \n\n\n\n\n\n\n\n\n\nCode\nggplot(data=exam_data, \n       aes(x=MATHS, y=ENGLISH)) +\n  geom_point() +\n  coord_cartesian(xlim=c(0,100),\n                  ylim=c(0,100)) +\n  geom_hline(yintercept=50,\n             linetype=\"dashed\",\n             color=\"grey60\",\n             linewidth=1) + \n  geom_vline(xintercept=50, \n             linetype=\"dashed\",\n             color=\"grey60\",\n             linewidth=1)"
   }
 ]
