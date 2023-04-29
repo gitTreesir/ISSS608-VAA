@@ -41,20 +41,21 @@ ggplot(data=exam_data,
 
 ## Designing Data-drive Graphics for Analysis I
 
-In this example, we will revise the vertical bar chart to provide additional information. 
+In this example, we will revise the vertical bar chart to provide additional information.
 
 The left tab panel shows the original vertical bar chart, while the right panel shows the revised version of the vertical bar chart.
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Original
-A simple vertical bar chart for frequency analysis. 
+
+A simple vertical bar chart for frequency analysis.
 
 Critics:
 
 -   y-axis label is not clear (i.e. count)
 -   To support effective comparison, the bars should be sorted by their respective frequencies.
 -   For static graph, frequency values should be added to provide addition information.
+
 ```{r}
 ggplot(data=exam_data,
        aes(x = RACE)) +
@@ -62,6 +63,7 @@ ggplot(data=exam_data,
 ```
 
 ## Revised
+
 The revised vertical bar chart will show:
 
 -   The y-axis will be changed to the Total Number of Pupils
@@ -84,17 +86,15 @@ ggplot(data = exam_data,
 ```
 :::
 
-
 ## Designing Data-drive Graphics for Analysis II
 
 In this example, we will improve the aesthetics of the histogram.
 
-
 The left tab panel shows the original version of the histogram plotted, while the right panel shows the revised version, with added information of the mean and median lines.
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Original
+
 A simple histogram.
 
 ```{r}
@@ -132,11 +132,11 @@ ggplot(data = exam_data,
 
 The original histograms on the left tab (Original) are elegantly designed but not informative. This is because they only reveal the distribution of English scores by gender but without context such as all pupils.
 
-In this example, on the right tab (Revised), we will show the distribution of English scores by gender and also include the histogram of all pupils at the background. 
+In this example, on the right tab (Revised), we will show the distribution of English scores by gender and also include the histogram of all pupils at the background.
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Original
+
 ```{r}
 ggplot(data=exam_data, aes(x = ENGLISH)) + 
   geom_histogram(bins=30) +
@@ -144,6 +144,7 @@ ggplot(data=exam_data, aes(x = ENGLISH)) +
 ```
 
 ## Revised
+
 ```{r}
 backgd_data <- exam_data   
 d_bg <- backgd_data[, -3]
@@ -157,15 +158,13 @@ ggplot(backgd_data, aes(x = ENGLISH, fill = GENDER)) +
 ```
 :::
 
-
-
 ## Designing Data-drive Graphics for Analysis IV
 
 In this example, we will beautify (makeover) the scatterplot from left tab (Original) to right tab (Revised)
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ## Original
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS, y=ENGLISH)) +
@@ -173,8 +172,8 @@ ggplot(data=exam_data,
 
 ```
 
-
 ## Revised
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=MATHS, y=ENGLISH)) +
@@ -191,5 +190,4 @@ ggplot(data=exam_data,
              linewidth=1)
 
 ```
-
 :::
