@@ -365,7 +365,6 @@ single_merged_data <- merge(participants,
 expanded_merged_data <- merge(participants, final_finjournal_wide, by = "participantId")
 ```
 
-
 # 4. Data Visualisation and Analysis
 
 ## 4.1. Exploratory Data Analysis
@@ -414,7 +413,7 @@ ggplot(edu_count,
 
 ### Proportion of Age
 
-**Design Consideration** We make use of bar chart to show the breakdown of the representative residents' age instead of pie chart so that we can compare the different age groups side-by-side. Besides the % of composition, the number of representative residents belonging to the respective age groups, are also included. 
+**Design Consideration** We make use of bar chart to show the breakdown of the representative residents' age instead of pie chart so that we can compare the different age groups side-by-side. Besides the % of composition, the number of representative residents belonging to the respective age groups, are also included.
 
 Different colours are also used to represent the different age groups for easy reference. We also make use of callout extensions above the vertical bars (through `ggrepel` to show the number of representative residents and the %). The same colour scheme is applied to the callout boxes for easy association. The label of the x-axis ticks were amended for better clarity. In addition, the legend box was excluded as label ticks on the x-axis would have indicated the different groups.
 
@@ -450,7 +449,7 @@ ggplot(age_count,
 
 ### Happiness Index
 
-**Design Consideration** We make use of bar chart to show the breakdown of the representative residents' happiness index instead of pie chart to facilitate visual comparison of the different happiness index side-by-side. Besides the % of composition, the number of representative residents with the respective happiness index are also included.  
+**Design Consideration** We make use of bar chart to show the breakdown of the representative residents' happiness index instead of pie chart to facilitate visual comparison of the different happiness index side-by-side. Besides the % of composition, the number of representative residents with the respective happiness index are also included.
 
 Different colours are also used to represent the different groups of happiness index for easy reference. We also make use of callout extensions above the vertical bars (through `ggrepel` to show the number of representative residents and the %). The same colour scheme is applied to the callout boxes for easy association. The label of the x-axis ticks were amended for better clarity. In addition, the legend box was excluded as label ticks on the x-axis would have indicated the different groups.
 
@@ -484,10 +483,9 @@ ggplot(jov_count,
 [**Explanation**]{.underline} From the chart above, most of the representative residents (66%) are not very happy (i.e. 0.6 and below), with only 300 out of the 880 representatives (34%) are happy (Happiness Index from 0.61 onwards).
 :::
 
-
 ### 4.1.2. Total Income and Savings with reference to Education Level
 
-**Design Consideration** Scatterplots are generally used to show the relationship between two continuous variables. 
+**Design Consideration** Scatterplots are generally used to show the relationship between two continuous variables.
 
 The original intent was to include more interactive interface by making use `DT` (data table) and `crosstalk` packages to allow users to click on a point on the scatterplot to view more information about the selected representative resident. However, the idea was aborted as the points were scattered widely across the x-axis. If we were to include a DT table beside it, the scatterplot will become very small and cramped up. As such, the additional details on the selected representative resident were presented as hovertext instead.
 
@@ -517,17 +515,14 @@ fig <- fig %>%
 fig
 ```
 
-
-[**Explanation**]{.underline} Based on the interactive chart above, we observed participants with higher levels of education tend to earn more and save more, as opposed  to those with lower levels of education.
-
+[**Explanation**]{.underline} Based on the interactive chart above, we observed participants with higher levels of education tend to earn more and save more, as opposed to those with lower levels of education.
 
 ### 4.1.3. Total Income, Expenditure and Savings for the period of study
 
 **Design Consideration** Ridgeline plot is a set of overlapped density plots, which could help us compare distributions of the dataset. They are useful for visualizing changes in distributions over time. As such, we will make use of such plots to present 3 sets of information for the period of study (i.e. Mar 2022 to Feb 2023).
 
-
 ::: panel-tabset
-### Total Income by Education Level 
+### Total Income by Education Level
 
 ```{r}
 ggplot(data = expanded_merged_data, 
@@ -554,14 +549,14 @@ ggplot(data = expanded_merged_data,
   transition_time(expanded_merged_data$YearMth) +
   ease_aes('linear')
 ```
+
 [**Explanation**]{.underline}
 
 1.  Representative Residents with Graduates education have the highest income.
 2.  The income for all education levels remains consistent across the entire year.
 3.  There was a sharp increase in the income across all education levels in the month of March 2022.
 
-
-### Total Expenditures by Education Level 
+### Total Expenditures by Education Level
 
 ```{r}
 ggplot(data = expanded_merged_data, 
@@ -588,6 +583,7 @@ ggplot(data = expanded_merged_data,
   transition_time(expanded_merged_data$YearMth) +
   ease_aes('linear')
 ```
+
 [**Explanation**]{.underline}
 
 1.  There was no significant difference in the spending across the different education levels.
@@ -597,7 +593,7 @@ ggplot(data = expanded_merged_data,
 
 ### 4.1.4. Analysis of Monthly Income and Spending
 
-**Design Consideration** We use an interactive scatterplot to analyse the monthly income with the spending of the representative residents on a monthly basis. 
+**Design Consideration** We use an interactive scatterplot to analyse the monthly income with the spending of the representative residents on a monthly basis.
 
 For the graph below, the x-axis represents the monthly income, while the y-axis shows the monthly expense as a percentage (over the monthly income). The label ticks of y-axis was intentionally left to exceed 100% (anything over 100% will imply that the resident overspent for that particular month. Different colours of the bubbles are used to represent the different education levels. Additional information such as the Age, Household Size and whether the resident has kids will also be shown when the user mouseover the points.
 
@@ -629,9 +625,8 @@ bp <- expanded_merged_data %>%
          showlegend = FALSE)
 bp
 ```
-[**Explanation**]{.underline}
-From the graph, it appeared that there were some overspendings among the residents across the months. These residents typically belong to the lower education groups.
 
+[**Explanation**]{.underline} From the graph, it appeared that there were some overspendings among the residents across the months. These residents typically belong to the lower education groups.
 
 ## 4.2. Two-sample Mean Test
 
@@ -656,7 +651,6 @@ ggbetweenstats(
 Since the p-value is very small (less than the significance level of 0.05), we can reject the null hypothesis that having kids will result in higher expenditure and conclude that there is a significant difference between the means of the two samples.
 
 However, we also noted that $\hat{r}$ value of -0.38 would indicate a moderate negative correlation between the two samples. This suggests that there may be a relationship between the samples, such that as one sample increases, the other sample decreases.
-
 
 ## 4.3 One-Way ANOVA Test
 
@@ -683,7 +677,6 @@ ggbetweenstats(
 ```
 
 [**Explanation**]{.underline} A p-value of 0.03 means that there is a 3% probability of obtaining a test statistic as extreme or more extreme than the one observed, assuming the null hypothesis is true. This suggests that there is some evidence against the null hypothesis and that the observed differences in means between the groups may be statistically significant. It is also observed that the median values are slightly different across the different education levels.
-
 
 ## 4.4. Correlation Tests
 

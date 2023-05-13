@@ -2,45 +2,64 @@ project:
   type: website
 
 website:
-  title: "ISSS608 - Visual Analytics & Applications"
-  navbar:
-    left:
-    - text: "Hands-on Exercise"
-      menu: 
-        - text: "Hands-on Exercise 1"
-          href: "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html"
-        - text: "Hands-on Exercise 2"
-          href: "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html"
-        - text: "Hands-on Exercise 3a"
-          href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03a.html"
-        - text: "Hands-on Exercise 3b"
-          href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03b.html"
-        - text: "Hands-on Exercise 4a"
-          href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04a.html"
-        - text: "Hands-on Exercise 4b"
-          href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04b.html"
-        - text: "Hands-on Exercise 4c"
-          href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04c.html"
-    - text: "In-Class Exercise"
-      menu: 
-        - text: "In-Class Exercise 1"
-          href: "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html"
-        - text: "In-Class Exercise 3"
-          href: "In-Class_Ex/In-Class_Ex03/In-Class_Ex03.html"
-        - text: "In-Class Exercise 4"
-          href: "In-Class_Ex/In-Class_Ex04/In-Class_Ex04.html"
-    - text: "Take-Home Exercise"
-      menu: 
-        - text: "Take-Home Exercise 1"
-          href: "Take-home_Ex/Take-home_Ex01/Take-Home_Ex01.html"
-    right:
-      - href: index.qmd
-        text: Home
-      - about.qmd
+  page-navigation: true
+  title: "Visual Analytics - Ong Chae Hui"
+  description: "Homepage for my learning journey in visual analytics"
+  site-url: "https://smu-isss608-vaa.netlify.app/"
+  
+  sidebar: 
+    background: "#2d3239"
+    logo: "images/VA_pic1.png"
+    pinned: true
+    align: center
+    tools: 
+      - icon: github
+        href: https://github.com/gitTreesir/ISSS608-VAA
+    style: "docked"
+    search: true
+    collapse-level: 1
+    contents:
+      - section: "About this website"
+        contents: 
+          - text: Home
+            href: index.qmd
+          - text: About 
+            href: about.qmd
+      - section: "Hands-on Exercise"
+        contents: 
+          - text: "Hands-on Exercise 1"
+            href: "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html"
+          - text: "Hands-on Exercise 2"
+            href: "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html"
+          - text: "Hands-on Exercise 3a"
+            href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03a.html"
+          - text: "Hands-on Exercise 3b"
+            href: "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03b.html"
+          - text: "Hands-on Exercise 4a"
+            href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04a.html"
+          - text: "Hands-on Exercise 4b"
+            href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04b.html"
+          - text: "Hands-on Exercise 4c"
+            href: "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04c.html"
+
+      - section: "In-Class Exercise"
+        contents: 
+          - text: "In-Class Exercise 1"
+            href: "In-Class_Ex/In-Class_Ex01/In-Class_Ex01.html"
+          - text: "In-Class Exercise 3"
+            href: "In-Class_Ex/In-Class_Ex03/In-Class_Ex03.html"
+          - text: "In-Class Exercise 4"
+            href: "In-Class_Ex/In-Class_Ex04/In-Class_Ex04.html"
+
+      - section: "Take-home Exercise"
+        contents: 
+          - text: "Take-Home Exercise 1"
+            href: "Take-home_Ex/Take-home_Ex01/Take-Home_Ex01.html"
 
 format:
   html:
     theme: pulse
+    smooth-scroll: true
     css: styles.css
     toc: true
 
