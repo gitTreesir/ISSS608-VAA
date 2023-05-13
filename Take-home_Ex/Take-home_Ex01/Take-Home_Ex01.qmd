@@ -10,6 +10,7 @@ execute:
 format: 
   html:
     code-fold: true
+    code-summary: "Show the codes"
 engine: knitr
 ---
 
@@ -57,13 +58,7 @@ The required R library packages are being loaded. For this exercise, we will mak
 The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
 
 ```{r}
-#pacman::p_load(tidyverse, plotly, gganimate, ggiraph, DT, patchwork, ggdist, ggstatsplot, rstantools, ggridges, viridis, extrafont, ggrepel)
-
 pacman::p_load(tidyverse, plotly, gganimate, ggiraph, ggdist, ggstatsplot, ggridges, viridis,  ggrepel, ggpubr, extrafont)
-
-# 
-# font_import()
-# loadfonts(device = "win")
 ```
 
 # 3. Data Preparation
@@ -128,10 +123,10 @@ participants$haveKids <- ifelse(participants$haveKids == "FALSE", "NO",
 # Convert joviality column into a double data type and round it to 2 decimal places
 participants$joviality <- as.double(participants$joviality)
 
-# Bin the age column into groupings 
+# Bin the age column into groupings and save into another column, age_bin
 participants <- participants %>% mutate(age_bin = cut(age, breaks=c(17, 30, 40, 50, 60)))
 
-# Bin the joviality column into broad categories
+# Bin the joviality column into broad categories and save into another column, jov_bin
 participants <- participants %>% 
   mutate(jov_bin = cut(joviality, breaks=c(0, 0.2, 0.4, 0.6, 0.8, 1.0)))
 ```
@@ -169,7 +164,7 @@ if (has_duplicates) {
 finjournal
 ```
 
-Looking at the `finjournal` data set above, we notice that there are a few problems that we need to resolve before we can perform analysis on them
+Looking at the `finjournal` data set above, we noticed that there are a few problems that we need to resolve before we can perform analysis on them
 
 -   **participantId** is in `<dbl>` format. Since this is used to identify each participant uniquely, we will convert it to a `string factor`
 -   **timestamp** is in `<POSIXct>` format. For the purpose of analysis, we will extract the `month` and `year` from this data item.
@@ -203,6 +198,7 @@ There are often dirty data that we will need to cleanse before performing any da
 ```{r}
 #| echo: false
 
+# group the finjournal data by participantId and get the transaction count for each participant. We will also arrange the transaction count in ascending order.
 finjournal_grp <- finjournal %>%
   group_by(participantId) %>%
   summarise(transaction_cnt = n()) %>%
@@ -230,6 +226,7 @@ plot
 #| eval: false
 #| code-fold: false
 
+# group the finjournal data by participantId and get the transaction count for each participant. We will also arrange the transaction count in ascending order.
 finjournal_grp <- finjournal %>%
   group_by(participantId) %>%
   summarise(transaction_cnt = n()) %>%
@@ -261,10 +258,12 @@ As you noticed from the chart above, there is a number of participants (131 of t
 We will proceed to remove the 131 participants who have significantly low number of transaction records, compared to the rest.
 
 ```{r}
-# Get the transaction count for the last row of the 131 outliers 
+# Since we have arrange the number of transactions in ascending order in the 
+# earlier code chunks, we can just get the transaction count for the last 
+# record of the 131 outliers. 
 txn_count <- finjournal_grp[131, "transaction_cnt"]
 
-# Extract the participants without the 131 participants 
+# Extract the participants without the 131 participants by the transaction count
 finjournal_grp_filtered <- finjournal_grp %>%
   filter(transaction_cnt > as.integer(txn_count))
 
@@ -283,12 +282,13 @@ In this section, we will be performing a series of data wrangling activities for
 -   derive monthly savings (earnings - expenses)
 
 ```{r}
+# Group the new filtered dataset by ParticipantId, Category and YearMonth, then
 # sum up all the daily transactions amount based on the respective categories
 final_finjournal <- finjournal_filtered %>% 
   group_by(participantId, category, YearMonth) %>% 
   summarise(Total = sum(amount))
 
-# Transpose the categories to columns
+# Transpose the categories to columns 
 final_finjournal_wide <- pivot_wider(final_finjournal, 
                                names_from = category, 
                                values_from = Total)
@@ -296,7 +296,9 @@ final_finjournal_wide <- pivot_wider(final_finjournal,
 # Replace all the NA values to 0
 final_finjournal_wide[is.na(final_finjournal_wide)] <- 0.0
 
-# Derive the total monthly expenses, total monthly earnings and savings for each participant 
+# Derive the total monthly expenses, total monthly earnings (income), 
+# monthly savings, % of monthly expenses (over monthly income) 
+# for each participant 
 final_finjournal_wide$sum_expense <- final_finjournal_wide$Education + 
                                      final_finjournal_wide$Food +
                                      final_finjournal_wide$Recreation + 
@@ -307,6 +309,9 @@ final_finjournal_wide$sum_earning <- final_finjournal_wide$Wage +
 
 final_finjournal_wide$saving <- final_finjournal_wide$sum_earning -
                                 final_finjournal_wide$sum_expense
+
+final_finjournal_wide$expense_percent <-
+  round(final_finjournal_wide$sum_expense/final_finjournal_wide$sum_earning*100, 2)
 
 final_finjournal_wide$YearMthDay <- 
   as.Date(paste0(final_finjournal_wide$YearMonth,"-01"))
@@ -351,17 +356,6 @@ single_merged_data <- merge(participants,
 expanded_merged_data <- merge(participants, final_finjournal_wide, by = "participantId")
 ```
 
-```{r}
-### FOLLOWING CODES MIGHT NOT BE REQUIRED ###
-##
-# max_merge_data retains the category column, with a breakdown of the monthly transactions for each participant
-max_merge_data <- merge(participants, final_finjournal, by = "participantId")
-
-### This might not be necessary once we have checked the data
-# Write the merged data to a new CSV file 
-#write_csv(single_merged_data, "data/single_merged_data.csv", na="", append=FALSE, col_names=TRUE)
-#write_csv(expanded_merged_data, "data/expanded_merged_data.csv", na="", append=FALSE, col_names=TRUE)
-```
 
 # 4. Data Visualisation and Analysis
 
@@ -379,7 +373,7 @@ The demography of the representative residents are as shown in the graphs below.
 In this case, we make use of pie chart to show the education level composition of the representative residents (in %). Different colours are also used to represent the different levels of education for easy reference. We also make use of callout extensions (through `ggrepel` to show the %). The same colour scheme is applied to the callout boxes for easy association.
 
 ```{r}
-#create a pie chart to show the proportion of education level across the participants
+# create a pie chart to show the proportion of education level across the participants
 
 edu_count  <- single_merged_data %>%
   group_by(educationLevel) %>%
@@ -430,7 +424,9 @@ ggplot(age_count,
   scale_fill_brewer(palette = "Set2") +
   geom_label_repel(data = age_count,
                    aes(label = paste0(count, "(", age_pct, "%)")),
-                   size = 4, nudge_y = 6, color = "grey20",
+                   size = 4, nudge_x = c(0.1, 0.1, 0.1, 0.1), 
+                   nudge_y = c(0, 0.1, 0.1, 0.1), 
+                   color = "grey20",
                    show.legend = FALSE) +
   guides(fill = FALSE) +
   labs(title = "Proportion of Representative Residents by Age Group") +
@@ -461,7 +457,8 @@ ggplot(jov_count,
   scale_fill_brewer(palette = "Set2") +
   geom_label_repel(data = jov_count,
                    aes(label = paste0(count, "(", jov_pct, "%)")),
-                   size = 4, nudge_y = 5, color = "grey20", 
+                   size = 4, nudge_x = c(0.1, 0.1, 0.1, 0.1, 0.1), 
+                   nudge_y = c(0.1, 0.1, 0.1, 0.1, 0.1), color = "grey20", 
                    show.legend = FALSE) +
   guides(fill = FALSE) +
   labs(title = "Happiness Index of Representative Residents") +
@@ -475,7 +472,9 @@ ggplot(jov_count,
 
 ### 4.1.2. Total Income and Savings with reference to Education Level
 
-**Design Consideration** Scatterplots are generally used to show the relationship between two continuous variables. Users can select/unselect the different education levels to show on the graph by clicking on the legend on the right side of the chart. The actual total savings and income figures will also be displayed as hovering text when the cursor moves on the points.
+**Design Consideration** Scatterplots are generally used to show the relationship between two continuous variables. 
+
+For the graph below, users can select/unselect the different education levels to show on the graph by clicking on the legend on the right side of the chart. The actual total savings and income figures will also be displayed as hovering text when the cursor moves over the points.
 
 ```{r}
 fig <- plot_ly(data = single_merged_data,
@@ -483,10 +482,14 @@ fig <- plot_ly(data = single_merged_data,
                y = ~Total_saving,
                color = ~educationLevel,
                # Hover text:
-               text = ~paste("<br>Total Savings: $", Total_saving, 
-                             "<br>Total Income: $", Total_sumEarn))
+               text = ~paste("<br>Age: ", age, 
+                             "<br>Have Kids?: ", haveKids, 
+                             "<br>Household Size: ", householdSize, 
+                             "<br>Total Income: $", Total_sumEarn,
+                             "<br>Total Expenses: $", Total_sumExp,
+                             "<br>Total Savings: $", Total_saving))
 
-fig <- fig %>% layout(title = 'Total Income and Savings of Participants\n',
+fig <- fig %>% layout(title = "\nTotal Income and Savings of Representative Residents\n",
                       yaxis = list(zeroline = FALSE, title = "Total Savings ($)\n"),
                       xaxis = list(zeroline = FALSE, title = "\nTotal Income ($)\n"))
 
@@ -495,13 +498,14 @@ fig
 
 [**Explanation**]{.underline} Based on the interactive chart above, we observed participants with higher level of Education tend to earn more and thus, save more, compared to those with lower level of education.
 
+
 ### 4.1.3. Total Income, Expenditure and Savings for the period of study
 
 **Design Consideration** Ridgeline plot is a set of overlapped density plots, which could help us compare distributions of the dataset. They are useful for visualizing changes in distributions over time. As such, we will make use of such plots to present 3 sets of information for the period of study (i.e. Mar 2022 to Feb 2023).
 
 
 ::: panel-tabset
-### Total Income by Education Level for the Year
+### Total Income by Education Level 
 
 ```{r}
 ggplot(data = expanded_merged_data, aes(x = sum_earning, y = educationLevel, fill = after_stat(x))) +
@@ -529,12 +533,12 @@ ggplot(data = expanded_merged_data, aes(x = sum_earning, y = educationLevel, fil
 ```
 [**Explanation**]{.underline}
 
-1.  Participants with Graduates education have the highest income.
+1.  Representative Residents with Graduates education have the highest income.
 2.  The income for all education levels remains consistent across the entire year.
 3.  There was a sharp increase in the income across all education levels in the month of March 2022.
 
 
-### Total Expenditures by Education Level for the year
+### Total Expenditures by Education Level 
 
 ```{r}
 ggplot(data = expanded_merged_data, aes(x = sum_expense, y = educationLevel, fill = after_stat(x))) +
@@ -563,76 +567,46 @@ ggplot(data = expanded_merged_data, aes(x = sum_expense, y = educationLevel, fil
 [**Explanation**]{.underline}
 
 1.  There was no significant difference in the spending across the different education levels.
-2.  The participants generally spent \<\$3000 per month.
+2.  The Representative Residents generally spent \<\$3000 per month.
 3.  It was observed that there was a sharp increase of expenditure across all education levels in the month of March and could reach as high as \$8000.
+:::
 
+### 4.1.4. Analysis of Monthly Income and Spending
 
-### Total Savings by Education Level for the year
+**Design Consideration** We use an interactive scatterplot to analyse the monthly income with the spending of the representative residents on a monthly basis. 
+
+For the graph below, the x-axis represents the monthly income, while the y-axis shows the monthly expense as a percentage (over the monthly income). The label ticks of y-axis was intentionally left to exceed 100% (anything over 100% will imply that the resident overspent for that particular month. Different colours of the bubbles are used to represent the different education levels. Additional information such as the Age, Household Size and whether the resident has kids will also be shown when the user mouseover the points.
 
 ```{r}
-ggplot(data = expanded_merged_data, aes(x = saving, y = educationLevel, fill = after_stat(x))) +
-  
-  geom_density_ridges_gradient(scale = 3, rel_min_height = 0.01) +
-  
-  theme_minimal() +
-  
-    labs(title = 'Savings by Education Level: {frame_time}',
-       y = "Education Level",
-       x = "Savings") +
-  
-  theme(legend.position="none",
-  text = element_text(family = "Arial"),
-  plot.title = element_text(face = "bold", size = 12),
-  
-  axis.title.x = element_text(size = 10, hjust = 1),
-  axis.title.y = element_text(size = 10),
-  axis.text = element_text(size = 8)) +
-  
-  scale_fill_viridis(name = "saving", option = "D") +
-
-  transition_time(expanded_merged_data$YearMth) +
-  ease_aes('linear')
+bp <- expanded_merged_data %>%
+  plot_ly(x = ~sum_earning, 
+          y = ~expense_percent, 
+          sizes = c(2, 100),
+          color = ~educationLevel, 
+          frame = ~YearMonth, 
+          text = ~paste("<br>Representative Resident Id: ", participantId,
+                        "<br>Age: ", age,
+                        "<br>Education Level: ", educationLevel,
+                        "<br>Have Kids: ", haveKids,
+                        "<br>Household Size: ", householdSize,
+                        "<br>Monthly Income: $", sum_earning, 
+                        "<br>Monthly Expense: $", sum_expense,
+                        "<br>% of Monthly Income Spent: ", expense_percent, "%"),
+          hoverinfo = "text",
+          type = 'scatter',
+          mode = 'markers'
+          ) %>%
+  layout(title = "Monthly Income vs % of Monthly Income Spent\n",
+         xaxis = list(title = "\nMonthly Income"),
+         yaxis = list(title = "% of Monthly Expenses over Income\n"),
+         showlegend = FALSE)
+bp
 ```
 [**Explanation**]{.underline}
+From the graph, it appeared that there were some overspendings among the residents across the months. These residents typically belong to the lower education groups.
 
-1.  Participants with higher education levels (Bachelors and Graduate) tend to save more.
-:::
 
-## 4.2. One-sample Means Test
-
-The objective of a one-sample mean test is to determine if the mean of a sample is statistically significantly different from a known population mean. The null hypothesis is that there is no difference between the sample mean and the population mean, and the alternative hypothesis is that there is a difference. This type of test is commonly used in research to determine if a sample is representative of a larger population. By performing a one-sample mean test, researchers can determine if the sample is significantly different from the population and draw conclusions about the population based on the sample.
-
-::: panel-tabset
-### Total Income
-
-```{r}
-set.seed(1234)
-
-gghistostats(
-  data = single_merged_data,
-  x = Total_sumEarn,
-  type = "bayes",
-  test.value = 15000,
-  xlab = "Total Income"
-)
-```
-
-### Total Expenditure
-
-```{r}
-set.seed(1234)
-
-gghistostats(
-  data = single_merged_data,
-  x = Total_sumExp,
-  type = "bayes",
-  test.value = 15000,
-  xlab = "Total Expenses"
-)
-```
-:::
-
-## 4.3. Two-sample Mean Test
+## 4.2. Two-sample Mean Test
 
 The objective of a two-sample mean test is to compare the means of two independent samples and determine if they are significantly different from each other.
 
@@ -656,11 +630,12 @@ Since the p-value is very small (less than the significance level of 0.05), we c
 
 However, we also noted that $\hat{r}$ value of -0.38 would indicate a moderate negative correlation between the two samples. This suggests that there may be a relationship between the samples, such that as one sample increases, the other sample decreases.
 
-## 4.4 One-Way ANOVA Test
+
+## 4.3 One-Way ANOVA Test
 
 One-Way ANOVA (Analysis of Variance) test is used to determine whether there is a statistically significant difference between the means of three or more independent groups. The purpose of conducting a One-Way ANOVA test is to determine whether the variation in the response variable (dependent variable) is due to the variation in the factor being tested (independent variable) or whether it is simply due to chance.
 
-In this exercise, we will conduct a One-Way ANOVA test on the Total Expenditures (dependent variable) with different levels of education (independent variable).
+We will conduct a One-Way ANOVA test on the Total Expenditures (dependent variable) with different levels of education (independent variable).
 
 ```{r}
 ggbetweenstats(
@@ -682,12 +657,13 @@ ggbetweenstats(
 
 [**Explanation**]{.underline} A p-value of 0.03 means that there is a 3% probability of obtaining a test statistic as extreme or more extreme than the one observed, assuming the null hypothesis is true. This suggests that there is some evidence against the null hypothesis and that the observed differences in means between the groups may be statistically significant. It is also observed that the median values are slightly different across the different education levels.
 
-## 4.5. Correlation Tests
 
-Correlation tests are performed to investigate the strength and direction of a relationship between two variables. It helps to determine if the variables are related and, if so, how strongly they are related. As such, we will conduct 2 correlation tests here. First test will look at the relationship between Total Income and Total Savings; the second test will examine the relationship between Age and Wages.
+## 4.4. Correlation Tests
+
+Correlation tests are performed to investigate the strength and direction of a relationship between two variables. It helps to determine if the variables are related and, if so, how strongly they are related. As such, we will conduct 2 correlation tests here. The first correlation test will look at the relationship between Total Income and Total Savings; the second correlation test will examine the relationship between Age and Wages.
 
 ::: panel-tabset
-### Total Income and Total Saving
+### Total Income and Total Saving Correlation Test
 
 As we have seen in Section 4.1.2 (Total Income and Savings with reference to Education Level), it seems that the more income a representative resident earn, the more he/she saves. We will examine the correlation coefficient to see if this is indeed true.
 
@@ -711,7 +687,7 @@ ggscatterstats(data = single_merged_data,
 
 [**Explanation**]{.underline} With a $\hat{r}$ value of 0.99, it indicates that there is a very strong positive linear relationship between the Total Income and Total Savings (more income, more savings).
 
-### Age and Wage Correlation
+### Age and Wage Correlation Test
 
 ```{r}
 ggscatterstats(data = single_merged_data,
@@ -733,50 +709,3 @@ ggscatterstats(data = single_merged_data,
 
 [**Explanation**]{.underline} Given that the $\hat{r}$ value is -0.03, there is weak negative correlation between the Age and Wage. This means that as the age increases, the wage tends to decrease, even though the relationship is not very strong.
 :::
-
-```{r}
-
-# create a data frame
-# plot the box plot
-ggplot(single_merged_data, aes(x = jov_bin, y = Total_sumExp)) +
-  geom_boxplot() +
-  labs(x = "Joviality", y = "Total Expenditure", title = "Box Plot of Joviality and Total Expenditure")
-```
-
-```{r}
-
-#bubble plot - is it useful???
-bp <- expanded_merged_data %>%
-  plot_ly(x = ~sum_expense, 
-          y = ~sum_earning, 
-          size = ~householdSize, 
-          color = ~educationLevel, 
-          frame = ~YearMonth, 
-          text = ~age, 
-          hoverinfo = "text",
-          type = 'scatter',
-          mode = 'markers'
-          )
-bp
-
-```
-
-```{r}
-
-#bubble plot - is it useful???
-# bp <- expanded_merge_data %>%
-#   plot_ly(x = ~sum_expense, 
-#           y = ~sum_earning, 
-#           size = ~householdSize, 
-#           color = ~educationLevel, 
-#           frame = ~YearMonth, 
-#           text = ~age, 
-#           hoverinfo = "text",
-#           type = 'scatter',
-#           mode = 'markers'
-#           )
-# bp
-
-```
-
-# 5. Conclusion & Recommendation
