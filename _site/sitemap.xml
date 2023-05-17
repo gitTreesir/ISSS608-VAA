@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://smu-isss608-vaa.netlify.app/index.html</loc>
-    <lastmod>2023-05-13T14:19:51.892Z</lastmod>
+    <lastmod>2023-05-17T07:50:35.287Z</lastmod>
   </url>
   <url>
     <loc>https://smu-isss608-vaa.netlify.app/Take-home_Ex/Take-home_Ex01/Take-Home_Ex01.html</loc>
@@ -23,5 +23,21 @@
   <url>
     <loc>https://smu-isss608-vaa.netlify.app/In-Class_Ex/In-Class_Ex04/In-Class_Ex04.html</loc>
     <lastmod>2023-05-13T14:03:24.775Z</lastmod>
+  </url>
+  <url>
+    <loc>https://smu-isss608-vaa.netlify.app/Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.html</loc>
+    <lastmod>2023-05-17T07:51:44.202Z</lastmod>
+  </url>
+  <url>
+    <loc>https://smu-isss608-vaa.netlify.app/Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04c.html</loc>
+    <lastmod>2023-05-17T07:52:48.023Z</lastmod>
+  </url>
+  <url>
+    <loc>https://smu-isss608-vaa.netlify.app/Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04b.html</loc>
+    <lastmod>2023-05-17T07:51:52.091Z</lastmod>
+  </url>
+  <url>
+    <loc>https://smu-isss608-vaa.netlify.app/Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04a.html</loc>
+    <lastmod>2023-05-17T07:51:57.416Z</lastmod>
   </url>
 </urlset>
