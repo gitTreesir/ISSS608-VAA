@@ -1,0 +1,481 @@
+---
+title: "Take-Home Exercise 02"
+author: "Ong Chae Hui"
+date: 17 May 2023
+date-modified: "`r Sys.Date()`"
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: auto  
+format: 
+  html:
+    code-fold: false
+    code-summary: "Show the codes"
+    code-overflow: wrap
+    code-block-bg: true
+engine: knitr
+---
+
+# 1. Overview
+
+With reference to the [Mini-Challenge 2](#0) of [VAST Challenge 2023](#0) and by using appropriate **static and interactive statistical graphics** methods, we will help FishEye identify companies that may be engaged in illegal fishing.
+
+## 1.1. The Task
+
+Use visual analytics to identify temporal patterns for individual entities and between entities in the knowledge graph FishEye created from trade records. Categorize the types of business relationship patterns you find.
+
+## 1.2. Data Source
+
+For this task, we will make use of the *mc2_challenge_graph.json* provided for the data analysis and visualisation.
+
+# 2. Loading and Launching of Required R Packages
+
+The required R library packages are being loaded. For this exercise, we will make use of the following R library packages.
+
+-   **jsonlite**, JSON parser and generator optimized for statistical data and the web.
+-   **tidygraph** provides a tidy framework for all things relational (networks/graphs, trees, etc.)
+-   **ggraph**, an extension of the ggplot2 API tailored to graph visualizations and provides the same flexible approach to building up plots layer by layer.
+-   **visNetwork** for network visualization.
+-   **lubridate** is an R package that makes it easier to work with dates and times.
+-   **igraph** a library collection for creating and manipulating graphs and analyzing networks.
+-   **tidyverse**, a family of modern R packages specially designed to support data science, analysis and communication task including creating static statistical graphs.
+
+The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
+
+```{r}
+pacman::p_load(jsonlite, tidygraph, ggraph, visNetwork, lubridate,
+               igraph, tidyverse)
+```
+
+# 3. Data Preparation
+
+We will first load each of the data files into the environment and perform data wrangling.
+
+## 3.1. Loading and Extracting the Data
+
+Based on the VAST 2023 data notes, column `dataset` will always be 'mc2', to represent this set of data belongs to mini challenge 2. As such, we will not import this column into the R environment.
+
+### 3.1.1. Load main file *mc2_challenge_graph.json*
+
+We will first load in the main file, *mc2_challenge_graph.json*, then extract the nodes and edges (links) information out.
+
+```{r}
+mc2 <- fromJSON("data/mc2_challenge_graph.json")
+```
+
+#### 3.1.1.1. Extracting the nodes data.frame from mc2
+
+```{r}
+mc2_nodes <- as_tibble(mc2$nodes) %>%
+  select(id, shpcountry, rcvcountry)
+```
+
+#### 3.1.1.2. Extracting the edges (links) data.frame from mc2
+
+```{r}
+mc2_edges <- as_tibble(mc2$links) %>%
+  select(source, target, arrivaldate, hscode,
+         weightkg, valueofgoods_omu, volumeteu,
+         valueofgoodsusd)
+```
+
+#### 3.1.1.3. Examining the structure of *mc2_nodes* and *mc2_edges* data.frames using `glimpse()` of **dyplr**.
+
+```{r}
+glimpse(mc2_nodes)
+glimpse(mc2_edges)
+```
+
+```{r}
+write_rds(mc2_nodes, "data/generated/mc2_nodes.rds")
+write_rds(mc2_edges, "data/generated/mc2_edges.rds")
+```
+
+::: {.callout-note title="Examination of the data structure"}
+1.  There are a number of `chr` data type columns in both *mc2_nodes* and *mc2_edges*, as a good practice, we will trim away any possible leading and trailing white spaces of the data, before we perform any analysis.
+
+2.  The *arrivaldate* has the format of 'YYYY-MM-DD' and is treated as `chr` data type instead of `date` data type.
+
+3.  A closer examination on the columns `valueofgoods_omu`, `volumeteu`, `valueofgoodsusd` columns revealed that there are also a large number of `NA` (missing values) and are deemed as as incomplete. We will drop these columns from analysis.
+
+4.  We will also need to filter out any possible duplicate records by using the `distinct()` function.
+:::
+
+#### 3.1.1.4. Perform Data Wrangling for *mc2_edges*
+
+::: {.callout-note title="Data Preparation for mc2_edges"}
+1.  Drop columns `valueofgoods_omu`, `volumeteu` and `valueofgoodsusd` since they are deemed as as incomplete for analysis.
+
+2.  Convert *arrivaldate* from `chr` data type to `date` data type by using `ymd()`.
+
+3.  Extract the *year* component out from *arrivaldate* field with `year()`.
+
+4.  Perform white space trimming for the `chr` columns,to remove any the leading and trailing white spaces with `trimws()`.
+
+5.  Remove any possible duplicate records by using `distinct()`
+
+6.  Based on the data notes provided in the VAST Challenge, `hscode` refers to the Harmonized Commodity Description and Coding System Nomenclature (HS) developed by World Customs Organization (WCO). We will take reference from [Singapore Trade Classification, Customs and Excise Duties (STCCED) 2022](https://go.gov.sg/stcced2022). Based on the document, we will just extract the records with the relevant hscodes (0301, 0302, 0303, 0304, 0305, 0306, 0307, 0308, 0309, 1504, 1603, 1604, 1605, 2301).
+
+7.  Aggregate the records, by deriving a `weight` column based on the number of records by grouping the `source`, `target`, `hscode` and `year`.
+:::
+
+```{r}
+mc2_edges <- mc2_edges %>%
+  select(arrivaldate, source, target, hscode, weightkg) %>%
+  mutate(arrivaldate = ymd(arrivaldate)) %>%
+  mutate(year = year(arrivaldate)) %>%
+  mutate(source = trimws(source)) %>%
+  mutate(target = trimws(target)) %>%
+  mutate(hscode = trimws(hscode)) %>%
+  distinct()
+```
+
+```{r}
+# List of relevant hscodes related to fishing
+rel_hscodes_3 <- c("301", "302", "303", "304", "305",
+                   "306", "307", "308", "309")
+
+rel_hscodes_4 <- c("1504", "1603", "1604", "1605", "2301")
+
+# Extract the records with the above 1st 3 or 4 characters of hscodes and has more than 50 occurrences
+mc2_edges_aggregated <- mc2_edges %>%
+  filter((substr(hscode, 1, 3) %in% rel_hscodes_3) |
+         (substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(source, target, hscode, year) %>%
+  summarise(weight = n()) %>%
+  filter(source!=target) %>%
+  filter(weight > 50) %>%
+  arrange(weight) %>%
+  ungroup()
+```
+
+#### 3.1.1.5. Perform Data Wrangling for *mc2_nodes*
+
+::: {.callout-note title="Data Preparation for mc2_nodes"}
+The nodes within the node file must be unique and since we have filtered and cleaned the data in *mc2_edges_aggregated*, we will make use of this to extract the nodes that are used here.
+
+`rbind()` is used to combine the data in both `source` and `target` columns of *mc2_edges_aggregated*. We will then extract the unique records to form the nodes.
+:::
+
+```{r}
+id1 <- mc2_edges_aggregated %>%
+  select(source) %>%
+  rename(id = source)
+id2 <- mc2_edges_aggregated %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted <- rbind(id1, id2) %>%
+  distinct()
+```
+
+# 4. Data Visualisation
+
+## 4.1. Making use of `tbl_graph()` to build tidygraph data model
+
+```{r}
+# Build tbl_graph using the valid nodes and edges 
+mc2_graph <- tbl_graph(nodes = mc2_nodes_extracted,
+                       edges = mc2_edges_aggregated,
+                       directed = TRUE)
+```
+
+## 4.2. Visualising the Overview of the Network Graph
+
+**Data Preparation for using visNetwork**
+
+```{r}
+# Renaming the 'source' and 'target' columns to 'from' and 'to' respectively for visNetwork
+mc2_edges_aggregated_vis <- mc2_edges_aggregated %>%
+  rename(from = source) %>%
+  rename(to = target) %>%
+  filter(from!=to) %>%
+  ungroup()
+```
+
+From the network graph below, each node represents an individual business entity (id), which you could select from the dropdown list, to examine the connectivity of this entity with other entities.
+
+For the easy of searching of a particular entity, the dropdown list has been sorted in ascending order.
+
+In addition, directional arrows have also been included on the edges, to help identify "high degree" nodes that are highly connected to other nodes in the network.
+
+Hover action is also enabled for the graph so that the user can hover the mouse pointer over the graph to look at the different 'groups' of connectivity.
+
+```{r}
+edges <- mc2_edges_aggregated_vis
+nodes <- mc2_nodes_extracted %>%
+  filter(id %in% c("id", edges$from, edges$to)) %>%
+  arrange(id)
+
+vis_nw <- visNetwork(nodes, edges, 
+                     main = "An Overview of the Network Graph") %>%
+  visIgraphLayout(layout = "layout_with_kk") %>%
+  visLayout(randomSeed = 1234) %>%
+  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
+             nodesIdSelection = TRUE) %>%
+  visEdges(arrows = "to", smooth = list(enabled = TRUE, 
+                         type = "curvedCW"))
+
+vis_nw
+```
+
+[**Observations:**]{.underline}
+
+From the above network graph, we noticed that some of the nodes in the middle cluster seemed to have a thicker border compared to the rest, indicating that these nodes have more connections to the other nodes. With the help of the hover function, we were able to identify the ids of these nodes.
+
+
+**CAN WE MAKE USE OF THE DEGREE OF CENTRALITY OR IN-DEGREE TO COLLATE THESE NODES????**
+
+### 4.2.1. Identifying the high in-degree connectivity nodes (based on the above network graph)
+
+
+## 4.3. Eigenvector Centrality
+
+Eigenvector centrality is a measure to indicate the importance or influence of a node to the other nodes. It considers both the number of connections a node has and the importance of those connections. Nodes with high eigen centrality are not only connected to many other nodes but are also connected to nodes that have high eigen centrality.
+
+```{r}
+quantile_graph <- quantile(eigen_centrality(mc2_graph)$vector,
+                           probs = seq(0, 1, 1/10))
+
+V(mc2_graph)$size = eigen_centrality(mc2_graph)$vector
+
+mc2_graph_aggregated <- delete_vertices(mc2_graph, 
+                                        V(mc2_graph)[size <                                                        quantile_graph[10]])
+
+set.seed (1234)
+
+layout1 <- layout_with_kk(mc2_graph_aggregated)
+
+#identify top 10% of the new vertices
+quantile_graph_aggregated <- quantile(V(mc2_graph_aggregated)$size, 
+                                      probs = seq(0, 1, 1/10))
+
+# color yellow if vertices is top 10%
+V(mc2_graph_aggregated)$color <- ifelse (V(mc2_graph_aggregated)$size >
+                                           quantile_graph_aggregated[10], 
+                                         "darkgoldenrod3", "azure3") 
+
+# Greying out the edges so that the yellow nodes will stand out in the graph
+E(mc2_graph_aggregated)$color <- "grey"
+
+#Increase the size of nodes based on their centrality score, only those with high score will be visible
+V(mc2_graph_aggregated)$size <- V(mc2_graph_aggregated)$size/0.065
+
+plot(mc2_graph_aggregated, edge.arrow.size=0.25,edge.arrow.mode = "-", 
+     main = "Most Important/Influential Business Entities in the Network",
+     width=30, height=12)
+```
+
+```{r}
+  vertex_attr(mc2_graph_aggregated,
+              index = V(mc2_graph_aggregated)$size*0.065 >
+                quantile_graph_aggregated[10])
+```
+
+[**Observations:**]{.underline}
+
+Based on the EigenVector Centrality, there are a total of **7** business entities with its eigenvalue above the 90th percentile. These business entities are considered the most important/influential business entities in the network.
+
+## 4.3. Computing the Centrality Indices - using Centrality_Betweenness
+
+```{r}
+# g <- mc2_graph %>%
+#   mutate(betweenness_centrality = centrality_betweenness()) %>%
+#   ggraph(layout = "kk") +
+#   geom_edge_link(aes(width=weight),
+#                  alpha=0.2) +
+#   scale_edge_width(range = c(0.1, 5)) +
+#   geom_node_point(aes(size=1, color=centrality_betweenness()))
+# g + theme_graph() + labs(title = "Betweenness Centrality Graph")
+
+```
+
+## 4.4 Computing the Degree of Centrality
+
+The degree centrality of a node is calculated by counting the number of direct connections (edges) that a node has with other nodes. Nodes with a higher degree centrality have more connections, indicating that they are more central or influential within the network.
+
+For this exercise, we will identify nodes will high degree of centrality by extracting those nodes with degree \> 20. These are the nodes that are potentially the fishery warehouses or distribution.
+
+```{r}
+# Calculate the degree of each node
+node_degrees <- degree(mc2_graph)
+
+# Add node degrees as node attributes
+mc2_graph_deg <- mc2_graph %>%
+  activate(nodes) %>%
+  mutate(degree = node_degrees) %>% filter(degree > 25)
+
+
+# Plot the network graph with node degrees
+ggraph(mc2_graph_deg, layout = "kk") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = "")) +
+  geom_node_label(aes(label = degree), nudge_x = 0.1, nudge_y = 0.1, repel = TRUE) +
+  theme_graph() +
+  labs(title = "Degree of Centrality Graph")
+```
+
+::: panel-tabset
+### In-degree
+
+**Computing the in-degree measures for each node**
+
+```{r}
+# Convert tbl_graph to igraph object
+mc2_igraph <- igraph::as.igraph(mc2_graph)
+
+# Calculate the in-degree and out-degree of each node
+in_degree <- degree(mc2_igraph, mode = "in")
+out_degree <- degree(mc2_igraph, mode = "out")
+
+# Add in-degree and out-degree as node attributes
+V(mc2_igraph)$in_degree <- in_degree
+V(mc2_igraph)$out_degree <- out_degree
+
+# Convert back to tbl_graph
+mc2_graph_with_degrees <- as_tbl_graph(mc2_igraph) %>% filter(in_degree>30)
+
+# Plot the network graph with node degrees
+ggraph(mc2_graph_with_degrees, layout = "kk") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = ""), vjust = 2) +
+  geom_node_label(aes(label = in_degree), nudge_y = 0.2, color = "blue") +
+  labs(title = "In-Degree Betweenness")
+```
+
+### Out-degree
+
+**Computing the in-degree measures for each node**
+
+```{r}
+# Convert tbl_graph to igraph object
+mc2_igraph <- igraph::as.igraph(mc2_graph)
+
+# Calculate the in-degree and out-degree of each node
+in_degree <- degree(mc2_igraph, mode = "in")
+out_degree <- degree(mc2_igraph, mode = "out")
+
+# Add in-degree and out-degree as node attributes
+V(mc2_igraph)$in_degree <- in_degree
+V(mc2_igraph)$out_degree <- out_degree
+
+  
+# plot_out_degree <- ggraph(mc2_graph, layout="kk") + 
+#   geom_edge_link(aes(width = weight, color = factor(year)), alpha=0.2) +
+#   scale_edge_width(range = c(0.1,5)) +
+#   geom_node_point(aes(size = out_degree, colour = out_degree)) +
+#   geom_edge_link(arrow = arrow(length = unit(1, "mm"))) +
+#   theme_graph() +
+#   geom_node_text(aes(label = id), size = 1, repel = TRUE) +
+#   ggtitle("Out-degree Centrality")
+# 
+# 
+# plot_out_degree +
+#   geom_node_text(aes(label = round(out_degree, 2)), size=2, repel = TRUE) +
+#   theme(legend.position = "right",
+#         legend.text = element_text(size = 6),
+#         legend.key.size = unit(0.2, "cm"))
+
+# Convert back to tbl_graph
+mc2_graph_with_degrees <- as_tbl_graph(mc2_igraph) #%>% filter(out_degree > 5)
+  
+
+# Plot the network graph with node degrees
+# ggraph(mc2_graph_with_degrees, layout = "fr") +
+#   geom_edge_link(aes(width=weight, color=factor(year)), alpha=0.2) +
+#   geom_edge_link(arrow = arrow(length = unit (1,"mm"))) +
+#   scale_edge_width(range=c(0.1,5)) +
+#   geom_node_point() +
+#   geom_node_text(aes(label = ""), vjust = 2) +
+#   geom_node_label(aes(label = out_degree), nudge_y = 0.2, color = "red") +
+#   labs(title = "Out-Degree Betweenness")
+
+# Convert back to tbl_graph
+mc2_graph_with_degrees <- as_tbl_graph(mc2_igraph) #%>% filter(out_degree > 0)
+
+ggraph(mc2_graph_with_degrees, layout = "kk") +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = ""), vjust = 2) +
+  geom_node_label(aes(label = in_degree), nudge_y = 0.2, color = "red") +
+  labs(title = "Out-Degree Betweenness")
+```
+:::
+
+## 4.4. Computing the Centrality Indices - using centrality_closeness
+
+```{r}
+g <- mc2_graph %>%
+  mutate(closeness_centrality = centrality_closeness()) %>%
+  ggraph(layout = "kk") + 
+  geom_edge_link(aes(width=weight), alpha=0.1) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(size=0.5, color=centrality_closeness()))
+g + theme_graph() + labs(title = "Closeness Centrality between the Nodes")
+
+```
+
+```{r}
+ggraph(mc2_graph, layout = "kk") +
+  geom_edge_link(aes(colour = factor(year), size = 2)) +
+  geom_node_point(aes()) +
+  theme_graph()
+```
+
+```{r}
+ggraph(mc2_graph, layout = "kk") +
+  geom_edge_link(aes(colour = factor(year))) +
+  geom_node_point(aes()) +
+  facet_edges(~year) +
+  theme_graph()
+```
+
+```{r}
+### Exporting to CSV for closer examination
+# write_csv(x = final_MC2_nodes_noNA, "data/generated/final_MC2_nodes_noNA.csv")
+# write_csv(x = MC2_edges_aggregated, "data/generated/mc2_edges_agg.csv")
+# write_csv(x = valid_edges, "data/generated/valid_edges.csv")
+```
+
+```{r}
+### Exporting to CSV for closer examination
+# write_csv(x = mc2_nodes, "data/generated/mc2_nodes.csv")
+# write_csv(x = mc2_edges, "data/generated/mc2_edges.csv")
+```
+
+```{r}
+#| eval: false
+#| echo: false
+
+
+mc2_edges_aggregated_gp <- mc2_edges_aggregated %>%
+  group_by(year) %>%
+  summarise(cnt = n()) %>%
+  arrange(cnt)
+
+
+# Plotting a histogram with the data extracted for better visualisation
+plot <- ggplot(data = mc2_edges_aggregated_gp,
+               aes(x = year, y = cnt)) +
+  geom_bar(stat = "identity", color="gray30", fill="deepskyblue3") +
+#  ylim(0, 1000) +
+  ggtitle("Distribution of Transactions by Year") +
+  xlab("Year") +
+  ylab("Number of Transactions") +
+  theme_light() +
+  theme(plot.title = element_text(hjust = 0.5, face="bold"),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold")) +
+  scale_x_continuous(breaks = seq(min(mc2_edges_aggregated_gp$year),
+                                  max(mc2_edges_aggregated_gp$year), by = 1))
+
+
+plot <- plotly::ggplotly(plot, tooltip = c("y"))
+
+plot
+```

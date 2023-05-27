@@ -50,8 +50,12 @@ Due to some technical issue, ggtern is currently not available for downloading v
 :::
 
 ```{r}
-require(devtools)
-install_version("ggtern", version = "3.4.1", repos = "http://cran.us.r-project.org")
+#| eval: false 
+
+## Only need to run ONE-TIME
+
+#require(devtools)
+#install_version("ggtern", version = "3.4.1", repos = "http://cran.us.r-project.org")
 ```
 
 Next, load ggtern package into R environment by using the code chunk below.
@@ -83,7 +87,8 @@ Next, use the ***mutate()*** function of **dplyr** package to derive three new m
 #Deriving the young, economy active and old measures
 agpop_mutated <- pop_data %>%
   mutate(`Year` = as.character(Year))%>%
-  spread(AG, Population) %>%
+#  spread(AG, Population) %>%   ## spread is no longer supported
+  pivot_wider(names_from = AG, values_from = Population) %>%
   mutate(YOUNG = rowSums(.[4:8]))%>%
   mutate(ACTIVE = rowSums(.[9:16]))  %>%
   mutate(OLD = rowSums(.[17:21])) %>%
@@ -94,7 +99,7 @@ agpop_mutated <- pop_data %>%
 
 ### 3.4. Plotting Ternary Diagram with R
 
-#### 3.4.1.  Plotting a static ternary diagram
+#### 3.4.1. Plotting a static ternary diagram
 
 Use ***ggtern()*** function of **ggtern** package to create a simple ternary plot.
 
@@ -104,7 +109,6 @@ ggtern(data=agpop_mutated,
        aes(x=YOUNG,y=ACTIVE, z=OLD)) +
   geom_point()
 ```
-
 
 ```{r}
 #Building the static ternary plot
@@ -117,6 +121,10 @@ ggtern(data=agpop_mutated, aes(x=YOUNG,y=ACTIVE, z=OLD)) +
 #### 3.4.2. Plotting an interative ternary diagram
 
 The code below create an interactive ternary plot using ***plot_ly()*** function of **Plotly R**.
+
+:::{.callout-note}
+`ggplot_ly` does not work very well with ggtern. Hence we use `plot_ly()` instead.
+:::
 
 ```{r}
 # reusable function for creating annotation object

@@ -9,7 +9,7 @@ execute:
   warning: false
 format: 
   html:
-    code-fold: true
+    code-fold: false
     code-summary: "Show the codes"
 engine: knitr
 ---
@@ -38,7 +38,7 @@ pacman::p_load(igraph, tidygraph, ggraph,
 
 ## 3. The Data
 
-The data sets used in this hands-on exercise is from an oil exploration and extraction company. There are two data sets. One contains the nodes data and the other contains the edges (also know as link) data.
+The data sets used in this hands-on exercise is from an oil exploration and extraction company. There are two data sets. One contains the nodes data and the other contains the edges (also known as link) data.
 
 ### 3.1. The Edges data
 

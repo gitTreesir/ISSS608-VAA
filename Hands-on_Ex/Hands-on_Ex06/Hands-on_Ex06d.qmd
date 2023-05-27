@@ -30,8 +30,26 @@ For this exercise, the **GGally**, **parcoords**, **parallelPlot** and **tidyver
 
 The code chunks below are used to install and load the packages in R.
 
+
+Seemed like this version of R studio (2023.03.1 Build 446) is unable to install **parcoords**. We will search for the package and install manually.
+
 ```{r}
-pacman::p_load(GGally, parcoords, parallelPlot, tidyverse)
+#| eval: false 
+
+## Only need to run ONE-TIME
+require(devtools)
+install_version("parcoords", version = "1.0.0", repos = "http://cran.us.r-project.org")
+```
+
+Next, load parcoords package into R environment by using the code chunk below.
+
+```{r}
+library(parcoords)
+```
+
+
+```{r}
+pacman::p_load(GGally, parallelPlot, tidyverse)
 ```
 
 ## 3. Data Preparation
@@ -53,6 +71,8 @@ In this section, you will learn how to plot static parallel coordinates plot by 
 Code chunk below shows a typical syntax used to plot a basic static parallel coordinates plot by using `ggparcoord()`.
 
 ```{r}
+#| fig-width: 12
+
 ggparcoord(data = wh, 
            columns = c(7:12))
 ```
@@ -64,6 +84,7 @@ Notice that only two argument namely `data` and `columns` is used. `Data` 
 The basic parallel coordinates failed to reveal any meaning understanding of the World Happiness measures. In this section, you will learn how to makeover the plot by using a collection of arguments provided by `ggparcoord()`.
 
 ```{r}
+#| fig-width: 12
 ggparcoord(data = wh, 
            columns = c(7:12), 
            groupColumn = 2,
@@ -88,6 +109,9 @@ Since `ggparcoord()` is developed by extending **ggplot2** package, we can combi
 In the code chunk below, `facet_wrap()` of **ggplot2** is used to plot 10 small multiple parallel coordinates plots. Each plot represent one geographical region such as East Asia.
 
 ```{r}
+#| fig-width: 18
+#| fig-height: 8
+
 ggparcoord(data = wh, 
            columns = c(7:12), 
            groupColumn = 2,
@@ -107,6 +131,9 @@ One of the aesthetic defect of the current design is that some of the variable n
 To make the x-axis text label easy to read, let us rotate the labels by 30 degrees. We can rotate axis text labels using `theme()` function in ggplot2 as shown in the code chunk below.
 
 ```{r}
+#| fig-width: 12
+#| fig-height: 8
+
 ggparcoord(data = wh, 
            columns = c(7:12), 
            groupColumn = 2,
@@ -127,6 +154,9 @@ To rotate x-axis text labels, we use `axis.text.x` as argument to `theme()` func
 Rotating x-axis text labels to 30 degrees makes the label overlap with the plot and we can avoid this by adjusting the text location using `hjust` argument to theme's text element with `element_text()`. We use `axis.text.x` as we want to change the look of x-axis text.
 
 ```{r}
+#| fig-width: 12
+#| fig-height: 8
+
 ggparcoord(data = wh, 
            columns = c(7:12), 
            groupColumn = 2,
@@ -183,6 +213,8 @@ parallelPlot(wh,
 In the code chunk below, `histoVisibility` argument is used to plot histogram along the axis of each variables.
 
 ```{r}
+#| fig-width: 8
+
 histoVisibility <- rep(TRUE, ncol(wh))
 parallelPlot(wh,
              rotateTitle = TRUE,
