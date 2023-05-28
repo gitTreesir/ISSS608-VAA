@@ -412,7 +412,6 @@ Thing to learn from the code chunk:
 -   `highlight_key()` simply creates an object of class [crosstalk::SharedData](https://rdrr.io/cran/crosstalk/man/SharedData.html).
 -   Visit this [link](https://rstudio.github.io/crosstalk/) to learn more about crosstalk,
 
-
 ## 5. Interactive Data Visualisation - crosstalk methods!
 
 [Crosstalk](https://rstudio.github.io/crosstalk/) is an add-on to the htmlwidgets package. It extends htmlwidgets with a set of classes, functions, and conventions for implementing cross-widget interactions (currently, linked brushing and filtering).

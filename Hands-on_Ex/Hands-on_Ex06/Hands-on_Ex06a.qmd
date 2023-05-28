@@ -122,7 +122,7 @@ ggtern(data=agpop_mutated, aes(x=YOUNG,y=ACTIVE, z=OLD)) +
 
 The code below create an interactive ternary plot using ***plot_ly()*** function of **Plotly R**.
 
-:::{.callout-note}
+::: callout-note
 `ggplot_ly` does not work very well with ggtern. Hence we use `plot_ly()` instead.
 :::
 
