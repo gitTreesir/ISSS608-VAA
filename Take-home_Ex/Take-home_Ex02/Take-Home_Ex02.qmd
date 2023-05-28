@@ -40,6 +40,7 @@ The required R library packages are being loaded. For this exercise, we will mak
 -   **lubridate** is an R package that makes it easier to work with dates and times.
 -   **igraph** a library collection for creating and manipulating graphs and analyzing networks.
 -   **tidyverse**, a family of modern R packages specially designed to support data science, analysis and communication task including creating static statistical graphs.
+-   **DT** provides an R interface to the JavaScript library DataTables that create interactive table on html page.
 
 The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
 
@@ -62,12 +63,6 @@ We will first load in the main file, *mc2_challenge_graph.json*, then extract th
 
 ```{r}
 mc2 <- fromJSON("data/mc2_challenge_graph.json")
-```
-
-```{r}
-# mc2_graph <- read_rds("data/generated/mc2_graph.rds")
-# mc2_nodes <- read_rds("data/generated/mc2_nodes.rds")
-# mc2_edges <- read_rds("data/generated/mc2_edges.rds")
 ```
 
 #### 3.1.1.1. Extracting the nodes data.frame from mc2
@@ -93,7 +88,7 @@ glimpse(mc2_nodes)
 glimpse(mc2_edges)
 ```
 
-::: {.callout-note title="Examination of the data structure"}
+::: {.callout-tip title="Examination of the data structure"}
 1.  There are a number of `chr` data type columns in both *mc2_nodes* and *mc2_edges*, as a good practice, we will trim away any possible leading and trailing white spaces of the data, before we perform any analysis.
 
 2.  The *arrivaldate* has the format of 'YYYY-MM-DD' and is treated as `chr` data type instead of `date` data type.
@@ -105,7 +100,7 @@ glimpse(mc2_edges)
 
 #### 3.1.1.4. Perform Data Wrangling for *mc2_edges*
 
-::: {.callout-note title="Data Preparation for mc2_edges"}
+::: {.callout-tip title="Data Preparation for mc2_edges"}
 1.  Drop columns `valueofgoods_omu`, `volumeteu` and `valueofgoodsusd` since they are deemed as as incomplete for analysis.
 
 2.  Convert *arrivaldate* from `chr` data type to `date` data type by using `ymd()`.
@@ -116,12 +111,14 @@ glimpse(mc2_edges)
 
 5.  Remove any possible duplicate records by using `distinct()`
 
-6.  Based on the data notes provided in the VAST Challenge, `hscode` refers to the Harmonized Commodity Description and Coding System Nomenclature (HS) developed by World Customs Organization (WCO). We will take reference from [Singapore Trade Classification, Customs and Excise Duties (STCCED) 2022](https://go.gov.sg/stcced2022). Based on the document, we will just extract the records with the relevant hscodes (0301, 0302, 0303, 0304, 0305, 0306, 0307, 0308, 0309, 1504, 1603, 1604, 1605, 2301).
+6.  Based on the data notes provided in the VAST Challenge, `hscode` refers to the Harmonized Commodity Description and Coding System Nomenclature (HS) developed by World Customs Organization (WCO). We will filter all the records based on the hscodes related to the context of the challenge. The relevant hscodes are prefixed with: `301`, `302`, `303`, `304`, `305`, `306`, `307`, `308`, `309`, `1504`, `1603`, `1604`, `1605` and `2301`).
 
 7.  Aggregate the records, by deriving a `weight` column based on the number of records by grouping the `source`, `target`, `hscode` and `year`.
 :::
 
 ```{r}
+# For the edges data frame, we will make use of select() to extract 
+# and rearrange the columns.
 mc2_edges <- mc2_edges %>%
   select(arrivaldate, source, target, hscode, weightkg) %>%
   mutate(arrivaldate = ymd(arrivaldate)) %>%
@@ -140,6 +137,7 @@ rel_hscodes_3 <- c("301", "302", "303", "304", "305",
 rel_hscodes_4 <- c("1504", "1603", "1604", "1605", "2301")
 
 # Extract the records with the above 1st 3 or 4 characters of hscodes
+# using substr().
 mc2_edges_aggregated <- mc2_edges %>%
   filter((substr(hscode, 1, 3) %in% rel_hscodes_3) |
          (substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
@@ -152,10 +150,10 @@ mc2_edges_aggregated <- mc2_edges %>%
 
 #### 3.1.1.5. Perform Data Wrangling for *mc2_nodes*
 
-::: {.callout-note title="Data Preparation for mc2_nodes"}
+::: {.callout-tip title="Data Preparation for mc2_nodes"}
 The nodes within the node file must be unique and since we have filtered and cleaned the data in *mc2_edges_aggregated*, we will make use of this to extract the nodes that are used here.
 
-`rbind()` is used to combine the data in both `source` and `target` columns of *mc2_edges_aggregated*. We will then extract the unique records to form the nodes.
+`rbind()` is used to combine the data in both `source` and `target` columns of *mc2_edges_aggregated*. We will then extract the unique records to form the nodes data frame.
 :::
 
 ```{r}
@@ -179,33 +177,18 @@ mc2_graph <- tbl_graph(nodes = mc2_nodes_extracted,
                        directed = TRUE)
 ```
 
-```{r}
-# write_rds(mc2_nodes, "data/generated/mc2_nodes.rds")
-# write_rds(mc2_edges, "data/generated/mc2_edges.rds")
-# write_rds(mc2_nodes, "data/generated/mc2_nodes_extracted.rds")
-# write_rds(mc2_edges, "data/generated/mc2_edges_aggregated.rds")
-# write_rds(mc2_graph, "data/generated/mc2_graph.rds")
-```
 
 # 4. Data Exploration
 
-As part of the data exploration and analysis, we will compute the centrality scores for the nodes, before plotting them out for visualisation and analysis.
+As part of the data exploration and analysis, we will compute the centrality indices for the nodes and include them as attribute information to the nodes, before plotting them out for visualisation and analysis. We will also rename the `id` column to `label` and create a new column `id` by using the `row_number()`.
 
 ```{r}
-# Calculate the betweenness centrality 
-# Calculate the closeness centrality 
-# Calculate the degree centrality of each node
-# Calculate the in-degree score
-# Calculate the out-degree score
-
-# Calculate the eigenvector centrality ????
-
-  
-# Add node degrees as node attributes
 mc2_graph <- mc2_graph %>%
   activate(nodes) %>%
   rename(label = id) %>%
   mutate(id=row_number()) %>%  
+  
+  # Compute the betweenness centrality and bin the scores into logical groups
   mutate(betweenness_score = centrality_betweenness()) %>%
   mutate(bet_bin = cut(betweenness_score, 
                        breaks = c(0, 50000, 100000, 500000, Inf),
@@ -215,6 +198,7 @@ mc2_graph <- mc2_graph %>%
                                   "Very High\n(>=500K)"),
                        include.lowest = TRUE)) %>%  
   
+  # Compute the closeness centrality and bin the scores into logical groups
   mutate(closeness_score = centrality_closeness()) %>%
   mutate(close_bin = cut(closeness_score,
                          breaks = c(0, 0.5, 0.8, Inf),
@@ -223,13 +207,15 @@ mc2_graph <- mc2_graph %>%
                                     "High\n(>=0.8)\n"), 
                          include.lowest = TRUE)) %>%
 
+  # Compute the degree centrality of each node and bin the scores into logical groups
   mutate(degree_score = centrality_degree()) %>%
   mutate(deg_bin = cut(degree_score, breaks = c(0, 200, 300, Inf),
                        labels = c("Low\n(0-199)", 
                                   "Medium\n(200-299)", 
                                   "High\n(>=300)\n"),  
                        include.lowest = TRUE))  %>%
-  
+
+  # Compute the centrality score and bin the scores into logical groups
   mutate(centrality = centrality_authority()) %>%
   mutate(cent_bin = cut(centrality, breaks = c(0, 0.5, 0.8, Inf),
                        labels = c("Low\n(0-0.49)", 
@@ -238,10 +224,7 @@ mc2_graph <- mc2_graph %>%
                        include.lowest = TRUE))
   
 
-#%>% mutate(eigen_score = centrality_eigen)
-
-
-### Computing the in and out degree measurements 
+# Computing the in-degree and out-degree centralities
 # Convert to igraph for computing the in-degree and out-degree centrality
 igraph_obj <- as.igraph(mc2_graph)
 
@@ -259,8 +242,10 @@ V(mc2_graph)$out_degree <- out_degree_centrality
 mc2_graph <- mc2_graph %>% 
   mutate(in_bin = cut(in_degree, 
                       breaks = c(0, 300, 600, Inf),
-                      labels = c("Low\n(<300)", "Medium\n(300-599)", "High\n(>=600)"),
+                      labels = c("Low\n(<300)", "Medium\n(300-599)", 
+                                 "High\n(>=600)"),
                       include.lowest = TRUE)) %>%
+  
   mutate(out_bin = cut(out_degree, 
                        breaks = c(0, 2, 300, 500, Inf),
                        labels = c("0-1", "Low\n(2-300)", 
@@ -275,25 +260,26 @@ nodes_df <- mc2_graph %>%
   as_tibble() 
 ```
 
-```{r}
-# write_csv(x = nodes_df, "data/generated/nodes_df.csv")
-```
 
 ```{r}
+# Converting the edges into a tibble dataframe
 edges_df <- mc2_graph %>%
   activate(edges) %>%
   as_tibble()
 ```
 
-## 4.1. **Overview of the Network**
 
-From the network graph below, each node represents an individual business entity (id), which you could select from the dropdown list, to examine the connectivity of this entity with other entities.
+## 4.1.Overview of the Network
 
-For the easy of searching of a particular entity, the dropdown list has been sorted in ascending order.
+From the network graph below, each node represents an individual business entity (`label`), which you could select from the dropdown list, to examine the connectivity of this entity with other entities.
+
+In order to prevent the network graph from overcluttering, all edges with weight \<= 50 will not be displayed.
+
+For the ease of selecting a particular entity, the dropdown list has been sorted in ascending order by using `arrange()`.
 
 In addition, directional arrows have also been included on the edges, to help identify the nodes that are highly connected to other nodes in the network.
 
-Hover action is also enabled for the graph so that the user can hover the mouse pointer over the graph to look at the different 'groups' of connectivity.
+Hover action is also enabled for the graph so that the user can hover the mouse pointer over the graph to look at the possible different 'groups' of connectivity.
 
 ```{r}
 # Preparing the data for visualisation
@@ -301,31 +287,43 @@ edges <- edges_df %>%
   filter(weight > 50)
 
 nodes <- nodes_df %>%
-  filter(id %in% c(edges$from, edges$to)) 
-
+  filter(id %in% c(edges$from, edges$to)) %>%
+  arrange(label)
 
 vis_nw <- visNetwork(nodes, edges,
                      main = "An Overview of the Network Graph") %>%
-  visIgraphLayout(layout = "layout_with_kk") %>%
+  visIgraphLayout(layout = "layout_with_fr") %>%
   visLayout(randomSeed = 1234) %>%
   visNodes() %>%
   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
              nodesIdSelection = TRUE) %>%
-  visEdges(arrows = "to", smooth = list(enabled = TRUE,
-                         type = "curvedCW"))
+  visEdges(arrows = "to", smooth = list(enabled = TRUE, type = "curvedCW"))
 
 vis_nw
 ```
 
-[**Observations:**]{.underline}
 
-From the above network graph, we noticed that some of the nodes in the middle cluster seemed to have a thicker border compared to the rest, indicating that these nodes have more connections to the other nodes. With the help of the hover function, we were able to identify the ids of these nodes. However, it requires the user to maneuver around the graph with great efforts.
+::: {.callout-note title="Observations"}
+From the above network graph, we noticed that some of the nodes in the middle cluster seemed to be denser compared to the rest, indicating that these nodes probably have more connections to the other nodes. With the help of the hover function, we were able to identify the ids of these nodes. However, it requires the user to maneuver around the graph with great efforts.
+
+We will make use of the different centrality indices (Centrality, Betweenness Centrality, Closeness Centrality, Degree Centrality, In-Degree and Out-Degree Centrality) to aid in identifying the key nodes of the network in the subsequent sections.
+:::
+
 
 ## 4.2. The High Centrality Index Nodes
 
 We will attempt to identify the nodes with high centrality index, that would most likely be the main hubs within the network.
 
+Firstly, we will take a look at the distribution of the centrality index across all the nodes to gain an overview picture of the network. 
+
+In view that there are some extrememly low count figure, the `count` for each bin is displayed at the top of each bar for ease of reference.
+
+::: panel-tabset
+
+### Distribution of Centrality Index 
 ```{r}
+#| echo: false
+
 # Plotting the Distribution for Centrality 
 
 # Get the count of the records in each bin
@@ -345,23 +343,56 @@ plot_cent <- ggplot(nodes_df_cent_gp, aes(x = cent_bin, y = cnt)) +
 plot_cent
 ```
 
-[**Observations**]{.underline}
+### Code Chunk
+```{r}
+#| eval: false
+#| code-fold: false
 
-The graph above revealed that there are **3** nodes that have a centrality index \> 0.5. This means that these nodes are well-connected to other nodes in the network. These nodes have very high number of in-degree centrality scores, indicating that they are most likely to be the fishery wharves/central collection centers.
+# Plotting the Distribution for Centrality 
 
-With that information, we will study these 3 companies in greater details.
+# Get the count of the records in each bin
+nodes_df_cent_gp <- nodes_df %>%
+  group_by(cent_bin) %>%
+  summarise(cnt = n())
+
+# Create a distribution with bar chart using ggplot2
+plot_cent <- ggplot(nodes_df_cent_gp, aes(x = cent_bin, y = cnt)) +
+  geom_bar(stat = "identity", fill = "deepskyblue3") +
+  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
+  labs(x = "\nCentrality Index", y = "Count\n", 
+       title = "Distribution of Centrality Index of the Nodes") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot_cent
+```
+:::
+
+::: {.callout-note title="Observations from the Distribution of Centrality Index"}
+The graph above revealed that there are **3** nodes that have a centrality index \> 0.5. This means that these nodes are well-connected to other nodes in the network. These nodes have very high number of in-degree centrality index, indicating that they are most likely to be the fishery wharves/central collection centers.
+
+With that information, we will study these 3 entities in greater details.
+:::
 
 ```{r}
-# Extracting the top 3 companies with highest centrality
+# Extracting the top 3 entities with highest centrality indices
 nodes_df_cent_top3 <- nodes_df %>%
   filter(centrality >= 0.5) %>%
-  select(id, label, centrality, in_degree, in_bin, out_degree, out_bin,
-         betweenness_score, bet_bin) %>%
+  select(id, label, centrality, cent_bin, deg_bin, 
+         in_bin, out_bin, bet_bin, close_bin) %>%
   arrange(desc(centrality))
 
 top_3_cent <- head(nodes_df_cent_top3, 3)
 
-datatable(top_3_cent, class= "compact")
+datatable(head(top_3_cent, 3), 
+          colnames = c("ID", "Entity", "Centrality Index", "Centrality Category",
+                       "Degree Centrality Category", "In-Degree Centrality Category",
+                       "Out-Degree Centrality Cateogy", "Betweenness Index Category",
+                       "Closeness Index Category"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', targets = 1:5),
+                    list(targets = 5, visible = FALSE))))
+
 ```
 
 ```{r}
@@ -390,203 +421,12 @@ visNetwork(nodes_cent,
                          type = "curvedCW"))
 ```
 
-[**Observations**]{.underline}
-
-The network graph confirmed that these 3 entities are the main collection hubs for the fishing vessels with the high in-degree centrality scores and the number of incoming connections to them.
-
-
-## 4.3. **Betweenness Centrality**
-
-Betweenness centrality is a measure of the importance or influence of a node in a network based on its ability to connect other nodes. It quantifies the extent to which a node lies on the shortest paths between pairs of other nodes in the network.
-
-Nodes with high betweenness centrality act as bridges or intermediaries, connecting different parts of the network. They have the potential to control the flow of information, resources, or influence within the network. Removing or targeting these nodes can disrupt the network's connectivity or hinder the transfer of information.
-
-In the context of this exercise, nodes with high betweenness centrality might potentially be the the key fishery warehouses and distributors.
-
-```{r}
-# Plotting the Distribution for betweenness centrality 
-
-# Get the count of the records in each bin
-nodes_df_bet_gp <- nodes_df %>%
-  group_by(bet_bin) %>%
-  summarise(cnt = n())
-
-# Create a distribution with bar chart using ggplot2
-plot_bet <- ggplot(nodes_df_bet_gp, aes(x = bet_bin, y = cnt)) +
-  geom_bar(stat = "identity", fill = "deepskyblue3") +
-  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
-  labs(x = "\nBetweeenness Centrality", y = "Count\n", 
-       title = "Distribution of Betweenness Centrality of the Nodes") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-plot_bet
-```
-
-**Observation** The betweenness centrality distribution revealed that a large number of nodes has a low value and might potentially be the fishing vessels or small clusters without much influence to the entire network.
-
-However, it is noted that there are **11** nodes with very high betweenness centrality index (\>=500K), and we should pay attention to them. The datatable below shows the list of business entities and their respective betweenness centrality index.
-
-```{r}
-# Extract the Top 11 nodes with extremely high betweenness centrality index
-
-nodes_df_bet_top11 <- nodes_df %>%
-  filter(betweenness_score > 500000) %>%
-  select(id, label, betweenness_score, bet_bin, centrality, 
-         in_degree, in_bin, out_degree, out_bin) %>%  
-  arrange(desc(betweenness_score))
-
-datatable(nodes_df_bet_top11, class= "compact")
-```
-
-::: callout-note
-Now that we have the top 11 nodes with high betweenness centrality index, we will proceed to find its neighbouring nodes to build up the network graph.
+::: {.callout-note title="Observations"}
+Based on the DataTable and network graph, these 3 entities are likely to be the primary fishery wharves/collection centers within the network, as they have high in-degree centrality indices. However,the low out-degree centrality index, betweenness centrality index and closeness centrality index suggested that these nodes have limited impact/reach within the network.
 :::
 
-```{r}
-# get the company names for the edges
-edges_df_bet <- edges_df %>%
-  filter(from %in% nodes_df_bet_top11$id |
-         to %in% nodes_df_bet_top11$id) %>%
-  filter(weight > 10)
 
-# build the nodes table
-nodes_bet <- nodes_df %>%
-  filter(id %in% c(edges_df_bet$from, edges_df_bet$to)) %>%
-  rename(group = bet_bin)
-
-visNetwork(nodes_bet,
-           edges_df_bet,
-           main = "Top 11 Entities with High Betweenness Centrality Index") %>%
-  visIgraphLayout(layout = "layout_with_fr") %>%
-  visLayout(randomSeed = 1234) %>%
-  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
-             nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_bet$id, size=10) %>%
-  visLegend() %>%  
-  visEdges(arrows = "to", 
-           smooth = list(enabled = TRUE, 
-                         type = "curvedCW"))
-```
-
-**Observation** ?????
-
-
-## 4.3. **Looking at the Closeness Centrality**
-
-Closeness centrality is a measure of how quickly or easily a node can reach other nodes in a network. It quantifies the average distance between a node and all other nodes in the network.
-
-Nodes with high closeness centrality are able to reach other nodes in the network more quickly, indicating that they have a shorter average distance to other nodes. They are considered as central or influential because they can efficiently transmit information, resources, or influence to other nodes. On the other hand, nodes with low closeness centrality are relatively distant from other nodes, which may limit their access to information or their ability to transmit messages efficiently.
-
-In simpler terms, closeness centrality measures how well-connected a node is to all other nodes in a network. It reflects the average distance or "closeness" of a node to other nodes, indicating how quickly it can reach and interact with others. Nodes with high closeness centrality are well-positioned to spread information or influence throughout the network efficiently.
-
-```{r}
-# Plotting the Distribution for closeness centrality 
-nodes_df_close_gp <- nodes_df %>%
-  group_by(close_bin) %>%
-  summarise(cnt = n())
-
-
-# Create a bar chart with hover text using ggplot2
-plot_close <- ggplot(nodes_df_close_gp, aes(x = close_bin, y = cnt)) +
-  geom_bar(stat = "identity", fill = "deepskyblue3") +
-  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
-  labs(x = "\nCloseness Centrality", y = "Count\n", 
-       title = "Distribution of Closeness Centrality of the Nodes") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-plot_close
-```
-
-**Observations** Interestingly, there are 4828 nodes without any closeness centrality score (`NA`). These nodes are likely to be disconnected or isolated from the rest of the network. 
-
-***Could these nodes potentially be the illegal fishing vessels? No connection to any of the wharves nor distribution centres.***
-
-
-### 4.3.1. Look at those with high closeness centrality index (== 1.0)
-```{r}
-# Extract the nodes with closeness centrality index == 1.0
-
-nodes_df_high_close <- nodes_df %>%
-  filter(closeness_score >= 1.0) %>%
-  select(id, label, closeness_score, close_bin, 
-         betweenness_score, bet_bin, centrality, 
-         in_degree, in_bin, out_degree, out_bin) %>%  
-  arrange(desc(closeness_score))
-
-datatable(nodes_df_high_close, class= "compact")
-```
-
-
-```{r}
-# get the company names for the edges
-edges_df_high_close <- edges_df %>%
-  filter(from %in% nodes_df_high_close$id |
-         to %in% nodes_df_high_close$id) %>%
-  filter(weight > 10)
-
-# build the nodes table
-nodes_high_close <- nodes_df %>%
-  filter(id %in% c(edges_df_high_close$from, edges_df_high_close$to)) %>%
-  rename(group = close_bin)
-
-visNetwork(nodes_high_close,
-           edges_df_high_close,
-           main = "Entities with High Closeness Centrality Index") %>%
-  visIgraphLayout(layout = "layout_with_fr") %>%
-  visLayout(randomSeed = 1234) %>%
-  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
-             nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_high_close$id, size=10) %>%
-  visLegend() %>%  
-  visEdges(arrows = "to", 
-           smooth = list(enabled = TRUE, 
-                         type = "curvedCW"))
-```
-
-### 4.3.2. Look at those with closeness centrality index == NA
-```{r}
-# Extract the nodes with closeness centrality index == NA
-
-nodes_df_na_close <- nodes_df %>%
-  filter(is.na(closeness_score)) %>%
-  select(id, label, closeness_score, close_bin, 
-         betweenness_score, bet_bin, centrality, 
-         in_degree, in_bin, out_degree, out_bin) %>%  
-  arrange(desc(closeness_score))
-
-datatable(nodes_df_na_close, class= "compact")
-```
-
-
-```{r}
-# get the company names for the edges
-edges_df_na_close <- edges_df %>%
-  filter(from %in% nodes_df_na_close$id |
-         to %in% nodes_df_na_close$id) %>%  filter(weight > 20)
-
-# build the nodes table
-nodes_na_close <- nodes_df %>%
-  filter(id %in% c(edges_df_na_close$from, edges_df_na_close$to)) %>%
-  rename(group = close_bin)
-
-visNetwork(nodes_na_close,
-           edges_df_na_close,
-           main = "Entities with Closeness Centrality Index == NA") %>%
-  visIgraphLayout(layout = "layout_with_fr") %>%
-  visLayout(randomSeed = 1234) %>%
-  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
-             nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_na_close$id, size=10) %>%
-  visLegend() %>%  
-  visEdges(arrows = "to", 
-           smooth = list(enabled = TRUE, 
-                         type = "curvedCW"))
-```
-
-
-## 4.3. **Looking at the Degree of Centrality**
+## 4.3. Looking at the Degree of Centrality
 
 Degree centrality is a measure of the importance or popularity of a node in a network based on the number of connections it has. It quantifies how many direct connections a node has with other nodes in the network.
 
@@ -625,7 +465,6 @@ nodes_df_deg <- nodes_df %>%
 datatable(nodes_df_deg, class= "compact")
 ```
 
-
 ```{r}
 # get the company names for the edges
 edges_df_deg <- edges_df %>%
@@ -651,10 +490,12 @@ visNetwork(nodes_deg,
            smooth = list(enabled = TRUE, 
                          type = "curvedCW"))
 ```
+::: {.callout-note title="Observations"}
+**???TBA??? **
+:::
 
 
-
-## 4.4. **Looking at the In-Degree Centrality**
+## 4.4. Looking at the In-Degree Centrality
 
 In-degree centrality is a measure of centrality in a network that focuses on incoming connections to a node. In simple terms, it quantifies how popular or influential a node is based on the number of incoming connections it receives from other nodes in the network.
 
@@ -662,7 +503,12 @@ Nodes with high in-degree centrality are often considered influential or importa
 
 In-degree centrality is particularly useful when studying networks where the focus is on nodes receiving information, resources, or influence from others. It helps identify key individuals or nodes that are central to the flow of information or interactions within the network.
 
+::: panel-tabset
+
+### Distribution for In-Degree Centrality
 ```{r}
+#| echo: false
+
 # Plotting the Distribution for In-Degree centrality 
 nodes_df_in <- nodes_df %>%
   group_by(in_bin) %>%
@@ -680,25 +526,63 @@ plot_in <- ggplot(nodes_df_in, aes(x = in_bin, y = cnt)) +
 plot_in
 ```
 
+### Code Chunk
 ```{r}
-# Extracting the top 20 companies with highest in-degree centrality
-nodes_df_in_top20 <- nodes_df %>%
+#| eval: false
+#| code-fold: false
+
+# Plotting the Distribution for In-Degree centrality 
+nodes_df_in <- nodes_df %>%
+  group_by(in_bin) %>%
+  summarise(cnt = n())
+
+# Create a bar chart with hover text using ggplot2
+plot_in <- ggplot(nodes_df_in, aes(x = in_bin, y = cnt)) +
+  geom_bar(stat = "identity", fill = "deepskyblue3") +
+  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
+  labs(x = "\nIn-Degree Centrality", y = "Count\n", 
+       title = "Distribution of In-Degree Centrality of the Nodes") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot_in
+```
+:::
+
+::: {.callout-note title="Observations from the Distribution of In-Degree Centrality Index"}
+Majority of the entities in the network have low number of in-degree centrality index, which suggest that they are likely to be the fishing vessels within the network. 
+
+It is observed that there are **27** nodes with significantly high in-degree centrality index (\>=600), which we will study them in more details.
+:::
+
+
+```{r}
+# Extracting the top companies with highest in-degree centrality
+nodes_df_in_top <- nodes_df %>%
   filter(in_degree >= 600) %>%
-  select(id, label, in_degree, in_bin, degree_score, closeness_score, 
-         betweenness_score, out_degree) %>%
+  select(id, label, in_degree, in_bin, cent_bin, 
+         deg_bin, close_bin, bet_bin, out_bin) %>%
   arrange(desc(in_degree))
 
-top_20_in <- head(nodes_df_in_top20, 20)
+top_in <- head(nodes_df_in_top, 27)
 
-datatable(top_20_in, class= "compact")
+datatable(top_in, 
+          colnames = c("ID", "Entity", "In-Degree Centrality Index",
+                       "In-Degree Centrality Category", "Centrality Category",
+                       "Degree Centrality Category", "Closeness Index Category",
+                       "Betweenness Centrality Category", 
+                       "Out-Degree Centrality Cateogy"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', targets = 1:5),
+                    list(targets = 5, visible = FALSE))))
+
 ```
-
 
 ```{r}
 # get the company names for the edges
 edges_df_in <- edges_df %>%
-  filter(from %in% nodes_df_in_top20$id |
-         to %in% nodes_df_in_top20$id) %>%
+  filter(from %in% top_in$id |
+         to %in% top_in$id) %>%
   filter(weight > 50)
 
 # build the nodes table
@@ -719,65 +603,60 @@ visNetwork(nodes_in,
            smooth = list(enabled = TRUE, 
                          type = "curvedCW"))
 ```
+::: {.callout-note title="Observations"}
+**???TBA??? **
+:::
+
+### 4.4.1 Visualising Community
 
 ```{r}
 # get the company names for the edges
-# edges_df_in <- mc2_edges_aggregated %>%
-#   filter(target %in% top_20_in$label) %>%
-#   filter(weight > 50) 
+# edges_df_in_comm <- edges_df %>%
+#   filter(from %in% top_in$id |
+#          to %in% top_in$id) %>%
+#   filter(weight > 100) %>%
+#   distinct()
 
 # build the nodes table
+# nodes_in_comm <- nodes_df %>%
+#   filter(id %in% c(edges_df_in_comm$from, edges_df_in_comm$to)) 
+#%>%  rename(group = in_bin)
 
-# nodes_df_in_final <- nodes_df %>%
-#   filter(id %in% top_20_in$label |
-#          id %in% edges_df_in$source) %>%
-#   rename(group = in_bin)
+# Create an igraph object
+# igraph_in_comm <- graph_from_data_frame(d=edges_df_in_comm,
+#                                         vertices=nodes_in_comm,
+#                                         directed = TRUE)
 
-# # Renaming the 'source' and 'target' columns to 'from' and 'to' respectively for visNetwork
-# edges_df_in_vis <- edges_df_in %>%
-#   rename(from = source) %>%
-#   rename(to = target) %>%
-#   filter(from!=to) %>%
-#   ungroup()
-# 
+# Apply Infomap community detection algorithm
+# clusters <- cluster_infomap(igraph_in_comm)
 
-# 
-# # Create an igraph object 
-# igraph_in <- graph_from_data_frame(d=edges_df_in_vis, 
-#                                    vertices=nodes_df_in_final, 
-#                                    directed = TRUE)
-# 
-# # Apply Infomap community detection algorithm
-# clusters <- cluster_infomap(igraph_in)
-# 
-# # Get the cluster membership of each node
+# Get the cluster membership of each node
 # node_clusters <- membership(clusters)
-# 
-# # Assign colors to clusters
+
+# Assign colors to clusters
 # cluster_colors <- rainbow(max(membership(clusters)))
-# 
-# 
-# # Add the cluster membership as a column in the nodes data frame
-# # nodes_df_in_final$cluster <- paste("Cluster", node_clusters)
-# nodes_df_in_final$group <- membership(group)
 
 
-# visNetwork(nodes_df_in_final,
-#            edges_df_in_vis,
+# Add the cluster membership as a column in the nodes data frame
+# nodes_df_in_final$cluster <- paste("Cluster", node_clusters)
+# nodes_in_comm$group <- membership(group)
+# 
+# 
+# visNetwork(nodes_in_comm,
+#            edges_df_in_comm,
 #            main = "Network Graph of the top 20 entities with high in-degree") %>%
 #   visIgraphLayout(layout = "layout_with_kk") %>%
 #   visLayout(randomSeed = 1234) %>%
 #   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
 #              nodesIdSelection = TRUE) %>%
 #   visNodes(id = nodes_df_in_final$id) %>%
-#   visEdges(arrows = "to", 
-#            smooth = list(enabled = TRUE, 
+#   visEdges(arrows = "to",
+#            smooth = list(enabled = TRUE,
 #                          type = "curvedCW"))
 
 ```
 
-
-## 4.5. **Looking at the Out-Degree Centrality**
+## 4.5. Looking at the Out-Degree Centrality
 
 Out-degree centrality is a measure of centrality in a network that focuses on outgoing connections from a node. In simple terms, it quantifies how much influence or impact a node has on other nodes in the network based on the number of outgoing connections it has.
 
@@ -785,7 +664,12 @@ Nodes with high out-degree centrality are often seen as influential or important
 
 Out-degree centrality is particularly useful when studying networks where the focus is on nodes influencing or affecting other nodes. It helps identify key individuals or nodes that have a strong impact on the network as they possess many connections that reach other nodes.
 
+::: panel-tabset
+
+### Distribution for Out-Degree Centrality
 ```{r}
+#| echo: false
+
 # Plotting the Distribution for Out-Degree centrality 
 nodes_df_out <- nodes_df %>%
   group_by(out_bin) %>%
@@ -803,26 +687,63 @@ plot_in <- ggplot(nodes_df_out, aes(x = out_bin, y = cnt)) +
 plot_in
 ```
 
+### Code Chunk
+```{r}
+#| eval: false
+#| code-fold: false
+
+# Plotting the Distribution for Out-Degree centrality 
+nodes_df_out <- nodes_df %>%
+  group_by(out_bin) %>%
+  summarise(cnt = n())
+
+# Create a bar chart with hover text using ggplot2
+plot_in <- ggplot(nodes_df_out, aes(x = out_bin, y = cnt)) +
+  geom_bar(stat = "identity", fill = "deepskyblue3") +
+  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
+  labs(x = "\nOut-Degree Centrality", y = "Count\n", 
+       title = "Distribution of Out-Degree Centrality of the Nodes") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot_in
+```
+:::
+
+::: {.callout-note title="Observations from the Distribution of Out-Degree Centrality Index"}
+Majority of the entities in the network have low number of out-degree centrality index, which suggest that they are likely to be the fishing vessels within the network, contributing to one of the major fishery wharves/collection centres. 
+
+It is observed that there are **18** nodes with significantly high out-degree centrality index (\>300), which we will study them in more details.
+:::
+
+
 ```{r}
 # Extracting the top companies with highest out-degree centrality
 nodes_df_out <- nodes_df %>%
   filter(out_degree > 300) %>%
-  select(id, label, out_degree, out_bin, in_degree, in_bin, degree_score, 
-         closeness_score, betweenness_score) %>%
+  select(id, label, out_degree, out_bin, cent_bin, 
+         in_bin, deg_bin, closeness_score, betweenness_score) %>%
   arrange(desc(out_degree))
 
 top_out <- head(nodes_df_out, 18)
 
-datatable(top_out, class= "compact")
-```
+datatable(top_out, 
+          colnames = c("ID", "Entity", "Out-Degree Centrality Index",
+                       "Out-Degree Centrality Category", "Centrality Category",
+                       "In-Degree Centrality Cateogy", "Degree Centrality Category",
+                       "Closeness Index Category", "Betweenness Centrality Category"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', targets = 1:5),
+                    list(targets = 5, visible = FALSE))))
 
+```
 
 ```{r}
 # get the company names for the edges
 edges_df_out <- edges_df %>%
   filter(from %in% nodes_df_out$id |
          to %in% nodes_df_out$id) %>%
-  filter(weight > 50)
+  filter(weight > 20)
 
 # build the nodes table
 nodes_out <- nodes_df %>%
@@ -843,158 +764,130 @@ visNetwork(nodes_out,
                          type = "curvedCW"))
 ```
 
+::: {.callout-note title="Observations"}
+**???TBA??? **
+:::
 
 
 
-# 4. Data Visualisation
 
-## 4.1. Making use of `tbl_graph()` to build tidygraph data model
-
-```{r}
-# Build tbl_graph using the valid nodes and edges 
-# mc2_graph <- tbl_graph(nodes = mc2_nodes_extracted,
-#                        edges = mc2_edges_aggregated,
-#                        directed = TRUE)
-```
-
-## 4.2. Visualising the Overview of the Network Graph
-
-**Data Preparation for using visNetwork**
-
-```{r}
-# Renaming the 'source' and 'target' columns to 'from' and 'to' respectively for visNetwork
-# mc2_edges_aggregated_vis <- mc2_edges_aggregated %>%
-#   rename(from = source) %>%
-#   rename(to = target) %>%
-#   filter(from!=to) %>%
-#   ungroup()
-```
-
-From the network graph below, each node represents an individual business entity (id), which you could select from the dropdown list, to examine the connectivity of this entity with other entities.
-
-For the easy of searching of a particular entity, the dropdown list has been sorted in ascending order.
-
-In addition, directional arrows have also been included on the edges, to help identify "high degree" nodes that are highly connected to other nodes in the network.
-
-Hover action is also enabled for the graph so that the user can hover the mouse pointer over the graph to look at the different 'groups' of connectivity.
-
-```{r}
-# edges <- mc2_edges_aggregated_vis %>%
-#   filter(weight > 50)
-# 
-# nodes <- mc2_nodes_extracted %>%
-#   filter(id %in% c("id", edges$from, edges$to)) %>%
-#   mutate(centrality = centrality_authority()) %>%
-#   arrange(id)
-# 
-# 
-# vis_nw <- visNetwork(nodes, edges,
-#                      main = "An Overview of the Network Graph") %>%
-#   visIgraphLayout(layout = "layout_with_kk") %>%
-#   visLayout(randomSeed = 1234) %>%
-#   visNodes(aes(size = centrality, colour = centrality)) %>% 
-#   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
-#              nodesIdSelection = TRUE) %>%
-#   visEdges(arrows = "to", smooth = list(enabled = TRUE,
-#                          type = "curvedCW"))
-# 
-# vis_nw
-```
-
-[**Observations:**]{.underline}
-
-From the above network graph, we noticed that some of the nodes in the middle cluster seemed to have a thicker border compared to the rest, indicating that these nodes have more connections to the other nodes. With the help of the hover function, we were able to identify the ids of these nodes.
-
-**CAN WE MAKE USE OF THE DEGREE OF CENTRALITY OR IN-DEGREE TO COLLATE THESE NODES????**
-
-### 4.2.1. Identifying the high in-degree connectivity nodes (based on the above network graph)
-
-## 4.3. Eigenvector Centrality
+## 4.6. Eigenvector Centrality
 
 Eigenvector centrality is a measure to indicate the importance or influence of a node to the other nodes. It considers both the number of connections a node has and the importance of those connections. Nodes with high eigen centrality are not only connected to many other nodes but are also connected to nodes that have high eigen centrality.
 
+### 4.6.1. Data Preparation
 ```{r}
-# quantile_graph <- quantile(eigen_centrality(mc2_graph)$vector,
-#                            probs = seq(0, 1, 1/10))
-# 
-# V(mc2_graph)$size = eigen_centrality(mc2_graph)$vector
-# 
-# mc2_graph_aggregated <- delete_vertices(mc2_graph, 
-#                                         V(mc2_graph)[size <                                                        quantile_graph[10]])
-# 
-# set.seed (1234)
+mc2_edges_aggregated_eigen <- mc2_edges_aggregated %>%
+  filter(weight >80) %>%
+  ungroup()
 
-# layout1 <- layout_with_kk(mc2_graph_aggregated)
+id1_eigen <- mc2_edges_aggregated_eigen %>%
+  select(source) %>%
+  rename(id = source)
+id2_eigen <- mc2_edges_aggregated_eigen %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_eigen <- rbind(id1_eigen, id2_eigen) %>%
+  distinct()
+
+mc2_graph_eigen <- tbl_graph(nodes = mc2_nodes_extracted_eigen,
+                       edges = mc2_edges_aggregated_eigen,
+                       directed = TRUE)
+
+```
+
+### 4.6.2. Plotting the Eigenvector Network Graph
+```{r}
+quantile_graph <- quantile(eigen_centrality(mc2_graph_eigen)$vector,
+                           probs = seq(0, 1, 1/10))
+
+V(mc2_graph_eigen)$size = eigen_centrality(mc2_graph_eigen)$vector
+
+mc2_graph_aggregated_eigen <- delete_vertices(mc2_graph_eigen,
+                                        V(mc2_graph_eigen)[size <                                                        quantile_graph[10]])
+
+set.seed (1234)
+
+layout1 <- layout_with_kk(mc2_graph_aggregated_eigen)
 
 #identify top 10% of the new vertices
-# quantile_graph_aggregated <- quantile(V(mc2_graph_aggregated)$size, 
-#                                       probs = seq(0, 1, 1/10))
+quantile_graph_aggregated <- quantile(V(mc2_graph_aggregated_eigen)$size,
+                                      probs = seq(0, 1, 1/10))
 
 # color yellow if vertices is top 10%
-# V(mc2_graph_aggregated)$color <- ifelse (V(mc2_graph_aggregated)$size >
-#                                            quantile_graph_aggregated[10], 
-#                                          "darkgoldenrod3", "azure3") 
+V(mc2_graph_aggregated_eigen)$color <- ifelse (V(mc2_graph_aggregated_eigen)$size >
+                                           quantile_graph_aggregated[10],
+                                         "darkgoldenrod3", "azure3")
 
 # Greying out the edges so that the yellow nodes will stand out in the graph
-# E(mc2_graph_aggregated)$color <- "grey"
+E(mc2_graph_aggregated_eigen)$color <- "grey"
 
 #Increase the size of nodes based on their centrality score, only those with high score will be visible
-# V(mc2_graph_aggregated)$size <- V(mc2_graph_aggregated)$size/0.065
-# 
-# plot(mc2_graph_aggregated, edge.arrow.size=0.25,edge.arrow.mode = "-", 
-#      main = "Most Important/Influential Business Entities in the Network",
-#      width=30, height=12)
+V(mc2_graph_aggregated_eigen)$size <- V(mc2_graph_aggregated_eigen)$size/0.065
+
+plot(mc2_graph_aggregated_eigen, edge.arrow.size=0.25,edge.arrow.mode = "-",
+     main = "Most Important/Influential Business Entities in the Network",
+     width=30, height=12)
 ```
 
 ```{r}
-  # vertex_attr(mc2_graph_aggregated,
-  #             index = V(mc2_graph_aggregated)$size*0.065 >
-  #               quantile_graph_aggregated[10])
+  vertex_attr(mc2_graph_aggregated_eigen,
+              index = V(mc2_graph_aggregated_eigen)$size*0.065 >
+                quantile_graph_aggregated[10])
 ```
 
 [**Observations:**]{.underline}
 
-Based on the EigenVector Centrality, there are a total of **7** business entities with its eigenvalue above the 90th percentile. These business entities are considered the most important/influential business entities in the network.
+Based on the EigenVector Centrality, there are a total of **4** business entities with its eigenvalue above the 90th percentile. These business entities are considered the most important/influential business entities in the network.
 
-## 4.3. Computing the Centrality Indices - using Centrality_Betweenness
+
+
+### 4.7 Visualising Community
 
 ```{r}
-# g <- mc2_graph %>%
-#   mutate(betweenness_centrality = centrality_betweenness()) %>%
-#   ggraph(layout = "kk") +
+# Data Preparation
+# mc2_edges_aggregated_comm <- mc2_edges_aggregated %>%
+#   filter(weight >700) %>%
+#   ungroup()
+# 
+# id1_comm <- mc2_edges_aggregated_comm %>%
+#   select(source) %>%
+#   rename(id = source)
+# id2_comm <- mc2_edges_aggregated_comm %>%
+#   select(target) %>%
+#   rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+# mc2_nodes_extracted_comm <- rbind(id1_comm, id2_comm) %>%
+#   distinct()
+# 
+# mc2_graph_comm <- tbl_graph(nodes = mc2_nodes_extracted_comm,
+#                        edges = mc2_edges_aggregated_comm,
+#                        directed = TRUE)
+# 
+
+```
+
+```{r}
+# Create tbl_graph object for the community analysis
+# g <- mc2_graph_comm %>%
+#   mutate(community = as.factor(group_optimal(weights = weight))) %>%
+#   ggraph(layout = "fr") +
 #   geom_edge_link(aes(width=weight),
 #                  alpha=0.2) +
 #   scale_edge_width(range = c(0.1, 5)) +
-#   geom_node_point(aes(size=1, color=centrality_betweenness()))
-# g + theme_graph() + labs(title = "Betweenness Centrality Graph")
-
+#   geom_node_point(aes(colour = community))
+# 
+# g + theme_graph()
 ```
 
-## 4.4 Computing the Degree of Centrality
-
-The degree centrality of a node is calculated by counting the number of direct connections (edges) that a node has with other nodes. Nodes with a higher degree centrality have more connections, indicating that they are more central or influential within the network.
-
-For this exercise, we will identify nodes will high degree of centrality by extracting those nodes with degree \> 20. These are the nodes that are potentially the fishery warehouses or distribution.
-
-```{r}
-# Calculate the degree of each node
-# node_degrees <- degree(mc2_graph)
-
-# Add node degrees as node attributes
-# mc2_graph_deg <- mc2_graph %>%
-#   activate(nodes) %>%
-#   mutate(degree = node_degrees) #%>% filter(degree > 25)
 
 
-# Plot the network graph with node degrees
-# ggraph(mc2_graph_deg, layout = "kk") +
-#   geom_edge_link() +
-#   geom_node_point() +
-#   geom_node_text(aes(label = "")) +
-#   geom_node_label(aes(label = degree), nudge_x = 0.1, nudge_y = 0.1, repel = TRUE) +
-#   theme_graph() +
-#   labs(title = "Degree of Centrality Graph")
-```
+
 
 ```{r}
 ### Exporting to CSV for closer examination
@@ -1007,4 +900,26 @@ For this exercise, we will identify nodes will high degree of centrality by extr
 ### Exporting to CSV for closer examination
 # write_csv(x = mc2_nodes, "data/generated/mc2_nodes.csv")
 # write_csv(x = mc2_edges, "data/generated/mc2_edges.csv")
+```
+
+
+```{r}
+#| eval: false
+# mc2_graph <- read_rds("data/generated/mc2_graph.rds")
+# mc2_nodes <- read_rds("data/generated/mc2_nodes.rds")
+# mc2_edges <- read_rds("data/generated/mc2_edges.rds")
+```
+
+```{r}
+#| eval: false
+# write_rds(mc2_nodes, "data/generated/mc2_nodes.rds")
+# write_rds(mc2_edges, "data/generated/mc2_edges.rds")
+# write_rds(mc2_nodes, "data/generated/mc2_nodes_extracted.rds")
+# write_rds(mc2_edges, "data/generated/mc2_edges_aggregated.rds")
+# write_rds(mc2_graph, "data/generated/mc2_graph.rds")
+```
+
+```{r}
+#| eval: false
+# write_csv(x = nodes_df, "data/generated/nodes_df.csv")
 ```
