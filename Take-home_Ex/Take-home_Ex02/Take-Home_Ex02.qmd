@@ -41,12 +41,13 @@ The required R library packages are being loaded. For this exercise, we will mak
 -   **igraph** a library collection for creating and manipulating graphs and analyzing networks.
 -   **tidyverse**, a family of modern R packages specially designed to support data science, analysis and communication task including creating static statistical graphs.
 -   **DT** provides an R interface to the JavaScript library DataTables that create interactive table on html page.
+-   **cowplot** provides functions to arrange multiple grid-based plots on a page.
 
 The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
 
 ```{r}
 pacman::p_load(jsonlite, tidygraph, ggraph, visNetwork, lubridate,
-               igraph, tidyverse, DT)
+               igraph, tidyverse, DT, cowplot)
 ```
 
 # 3. Data Preparation
@@ -271,8 +272,7 @@ mc2_graph <- mc2_graph %>%
 
 ```
 
-
-Once we have all the centrality indices included into the graph, we will convert the nodes and edges into tibble data frames for easier data manipulation for visualisation purposes. 
+Once we have all the centrality indices included into the graph, we will convert the nodes and edges into tibble data frames for easier data manipulation for visualisation purposes.
 
 ```{r}
 # Converting the nodes with the centrality measures into a tibble dataframe
@@ -287,7 +287,6 @@ edges_df <- mc2_graph %>%
   activate(edges) %>%
   as_tibble()
 ```
-
 
 ## 4.1. Overview of the Network
 
@@ -330,7 +329,6 @@ From the overview network graph, we noticed that some of the nodes in the middle
 
 We will make use of the different centrality indices computed earlier to uncover more insights in the subsequent sections.
 :::
-
 
 ## 4.2. The Important Nodes of the Network - Eigenvector Centrality
 
@@ -396,46 +394,43 @@ plot_eigen
 :::
 
 ::: {.callout-note title="Observations from the Distribution of Eigenvector Centrality Index"}
-The graph above revealed that there are **4** nodes with eigenvector centrality index of \> 0.5. This means that these nodes are connected to other important nodes in the network. 
+The graph above revealed that there are **4** nodes with eigenvector centrality index of \>0.5. This means that these nodes are likely to be connected to other important nodes in the network.
 
-A quick examination of the eigenvector centrality index of the nodes revealed that 11,657 out of 11,688 nodes (>99%) have an eigenvector centrality index of <0.1.
-
-For the purpose of visual analysis, we will focus on the 4 nodes with high eigenvector centrality index.
+A quick examination of the eigenvector centrality index of the nodes revealed that 11,657 out of 11,688 nodes (\>99%) have an eigenvector centrality index of \<0.1. Hence, for the purpose of visual analysis, we will just focus on these 4 nodes and the connectivity between its immediate neighbouring nodes.
 :::
 
+### 4.2.1. Comparing the Different Centrality Indices
 
-### 4.2.1. Comparing the Different Centrality Indices 
+We will take a closer look at the in-degree centrality index and out-degree centrality index for these 4 nodes which have high eigenvector centrality indices.
 
 ```{r}
 # Extracting the top 4 entities with highest centrality indices
 nodes_df_eigen_top4 <- nodes_df %>%
   filter(eigen_score >= 0.5) %>%
-  select(id, label, eigen_score, eigen_bin, degree_score, deg_bin, 
-         in_degree, in_bin, out_degree, out_bin, 
-         betweenness_score, bet_bin, closeness_score, close_bin) %>%
+  select(id, label, eigen_score, eigen_bin, in_degree, in_bin, 
+         out_degree, out_bin) %>%
   arrange(desc(eigen_score))
 
 datatable(nodes_df_eigen_top4, 
-          class="compact",
+          class="stripe",
           caption = "\nTable 1: Business Entities with High Eigenvector Centrality Index\n",
           colnames = c("ID", "Entity", "Eigenvector Centrality Index", 
                        "Eigenvector Centrality Category", 
-                       "Degree Centrality Index",
-                       "Degree Centrality Category", 
                        "In-Degree Centrality Index",
                        "In-Degree Centrality Category",
                        "Out-Degree Centrality Index",
-                       "Out-Degree Centrality Cateogy",
-                       "Betweenness Centrality Index",
-                       "Betweenness Centrality Category",
-                       "Closeness Centrality Index",
-                       "Closeness Centrality Category"),
+                       "Out-Degree Centrality Category"),
           options = list(
             columnDefs = list(list(className = 'dt-center', 
-                                   targets = 14))))
+                                   targets="_all"))))
 ```
 
+::: {.callout-note title="Observations"}
+Based on the information presented in Table 1 above, we observed that these 4 nodes also have very high number of in-degree centrality index and very low number of out-degree centrality index, suggesting that they are likely to be the transhipments/fishery wharves/central collection centers within the network.
+:::
+
 ### 4.2.2. Eigenvector Centrality Network Graph
+
 ```{r}
 # get the company names for the edges
 edges_df_eigen <- edges_df %>%
@@ -456,25 +451,24 @@ visNetwork(nodes_eigen,
   visLayout(randomSeed = 1234) %>%
   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
              nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_eigen$id, size=10) %>%
- visLegend() %>%  
+  visNodes(id = nodes_eigen$id, size=50) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%
   visEdges(arrows = "to", 
            smooth = list(enabled = TRUE, 
                          type = "curvedCW"))
 ```
 
 ::: {.callout-note title="Observations"}
-Based on the information presented in the DataTable and the visualisation presented in the Network Graph above, we observed that these 4 nodes also have very high number of in-degree centrality index and very low number of out-degree centrality index, suggesting that they are likely to be the fishery wharves/central collection centers within the network. 
+The Network Graph revealed that all the links to the 4 high eigenvector centrality nodes were in-flow from external nodes. This reaffirms the suggestion that these nodes are likely to be the transhipments/fishery wharves/central collection centers within the network.
 :::
-
 
 ## 4.3. Looking at the Degree of Centrality
 
-Degree centrality is a measure of the importance or popularity of a node in a network based on the number of direct connections it has with other nodes in the network. 
+Degree centrality is a measure of the importance or popularity of a node in a network based on the number of direct connections it has with other nodes in the network.
 
 ::: panel-tabset
-
 ### Distribution of Degree Centrality Index
+
 ```{r}
 #| echo: false
 
@@ -496,6 +490,7 @@ plot
 ```
 
 ### Code Chunk
+
 ```{r}
 #| eval: false
 #| code-fold: false
@@ -519,43 +514,43 @@ plot
 :::
 
 ::: {.callout-note title="Observations from the Distribution of Degree Centrality Index"}
-The distribution chart above revealed that more than 99% of the nodes have low degree centrality index. There are **18** nodes with high degree centrality index of \>= 300. This means that these nodes have significantly high number of direct connections to other nodes within the network. 
+The distribution chart above revealed that more than 99% of the nodes have low degree centrality index. There are **18** nodes with high degree centrality index of \>= 300. This means that these nodes have significantly high number of direct connections to other nodes within the network.
 :::
 
-
 ### 4.3.1. Comparing the Different Centrality Indices
+
+We will take a look at the different centrality indices for these 18 nodes.
+
 ```{r}
 # Extract the nodes with high degree centrality index
 
 nodes_df_deg <- nodes_df %>%
   filter(degree_score >= 300) %>%
-  select(id, label, degree_score, deg_bin, eigen_score, eigen_bin,
-         in_degree, in_bin, out_degree, out_bin,
-         betweenness_score, bet_bin, closeness_score, close_bin) %>%  
+  select(id, label, degree_score, deg_bin, 
+         in_degree, in_bin, out_degree, out_bin) %>%  
   arrange(desc(degree_score))
 
 datatable(nodes_df_deg, 
-          class="compact",
+          class="stripe",
           caption = "\nTable 2: Business Entities with High Degree Centrality Index\n",
           colnames = c("ID", "Entity", 
                        "Degree Centrality Index",
                        "Degree Centrality Category", 
-                       "Eigenvector Centrality Index", 
-                       "Eigenvector Centrality Category", 
                        "In-Degree Centrality Index",
                        "In-Degree Centrality Category",
                        "Out-Degree Centrality Index",
-                       "Out-Degree Centrality Cateogy",
-                       "Betweenness Centrality Index",
-                       "Betweenness Centrality Category",
-                       "Closeness Centrality Index",
-                       "Closeness Centrality Category"),
+                       "Out-Degree Centrality Category"),
           options = list(
             columnDefs = list(list(className = 'dt-center', 
-                                   targets = 14))))
+                                   targets="_all"))))
 ```
 
+::: {.callout-note title="Observations"}
+Based on the information presented in Table 2 above, we observed that these nodes with high degree centrality indicdes also have very high number of out-degree centrality index. In addition, majority of these nodes also have some incoming links from the other external nodes, suggesting that these nodes would likely to be transhipments within the network.
+:::
+
 ### 4.3.2. Degree Centrality Network Graph
+
 ```{r}
 # get the entity names for the edges
 edges_df_deg <- edges_df %>%
@@ -576,19 +571,185 @@ visNetwork(nodes_deg,
   visLayout(randomSeed = 1234) %>%
   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
              nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_deg$id, size=10) %>%
-  visLegend() %>%  
+  visNodes(id = nodes_deg$id, size=30) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%  
   visEdges(arrows = "to", 
            smooth = list(enabled = TRUE))
 ```
 
 ::: {.callout-note title="Observations"}
-Based on the information presented in the DataTable and Network Graph, we noticed that these nodes generally have a high number of outgoing connections (>300 each), and very low number of incoming connections (highest at 24 incoming connections). This suggest these nodes are likely to be the bigger fishing vessels or distributors. 
+We observed that the nodes with high degree centrality index (in yellow) generally have outgoing connections to other nodes, which suggested that these nodes are likely to be the bigger fishing vessels or transhipments. Particularly, 2 of these nodes (The Salty Dog Limited Liability Company and xiǎo xiā Oyj Marine ecology) also have incoming links to them.
+
+![](images/HighDegCentrality_SaltyDog.jpg){fig-align="center" width="436"}
+
+![](images/HighDegCentrality_XiaoXia.jpg){fig-align="center" width="287"}
+
+Given that illegal fishing at international waters would typically involve large vessels acting as transhipments to 'launder' the illegally caught fish by exchanging for other resources such as fuel, we will examine the hscodes that these 2 entities have, as part of investigation.
+:::
+
+### 4.3.3. Close Examination of "The Salty Dog Limited Liability Company"
+
+We will extract out all the non-fishing related hscodes that involve this company as the source and target to further understand what are the resources that were being traded with the other entities. Once we extracted the relevant records, we will do a count of the number of edges with `n()` and analyse the top 10 records with the highest number of count.
+
+```{r}
+## Salty Dog as the Source
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+salty_dog_source_details <- mc2_edges %>%
+  filter(source == "The Salty Dog Limited Liability Company") %>%
+  group_by(target, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
+  ungroup()
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+salty_dog_source_hscodes <- salty_dog_source_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+## Salty Dog as the Target
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+salty_dog_target_details <- mc2_edges %>%
+  filter(target == "The Salty Dog Limited Liability Company") %>%
+  group_by(source, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  arrange(desc(weight)) %>%
+  distinct() %>%
+  ungroup()
+
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+salty_dog_target_hscodes <- salty_dog_target_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+# Presenting the top 10 records in a data table (Source) for analysis
+datatable(head(salty_dog_source_hscodes,10), 
+          class="stripe",
+          caption = "\nTable 3: List of Business Entities with 'Salty Dog' as the Source\n",
+          colnames = c("Target Entity", "Weightkg", 
+                       "HS Code", "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+
+# Presenting the top 10 records in a data table (Target) for analysis
+datatable(head(salty_dog_target_hscodes,10), 
+          class="stripe",
+          caption = "\nTable 4:  List of Business Entities with 'Salty Dog' as the Target\n",
+          colnames = c("Source Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+```
+
+::: {.callout-note title="Observations"}
+[**Salty Dog as the Source Provider**]{.underline}
+
+Table 3 shows that list of Business Entities with 'Salty Dog' as the Source Provider. From the list of HS Codes, we noted that 'The Salty Dog Limited Liability Company' also provides other forms of consumables, particularly vegetables (for hscodes starting with `710` to `713`) to the respective parties. Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+
+[**Salty Dog as the Target Recipient**]{.underline}
+
+Table 4 shows the list of Business Entities with 'Salty Dog' as the Target Recipient. From the list of HS Codes, we noticed that 'The Salty Dog Limited Liability Company' does not only accept fish and seafood, but also other products such as bags, container cases/boxes with outer surface of plastics or of textile materials (for `hscode == 420212`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
+:::
+
+### 4.3.4. Close Examination of "xiǎo xiā Oyj Marine ecology"
+
+Similarly for the close examination of "xiǎo xiā Oyj Marine ecology", we will extract out all the non-fishing related hscodes that involve this company as the source and target to further understand what are the resources that were being traded with the other entities. Once we extracted the relevant records, we will do a count of the number of edges with `n()` and analyse the top 10 records with the highest number of count.
+
+```{r}
+## xiǎo xiā as the Source
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+xiao_xia_source_details <- mc2_edges %>%
+  filter(source == "xiǎo xiā Oyj Marine ecology") %>%
+  group_by(target, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
+  ungroup()
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+xiao_xia_source_hscodes <- xiao_xia_source_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+## xiǎo xiā as the Target
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+xiao_xia_target_details <- mc2_edges %>%
+  filter(target == "xiǎo xiā Oyj Marine ecology") %>%
+  group_by(source, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  arrange(desc(weight)) %>%
+  distinct() %>%
+  ungroup()
+
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+xiao_xia_target_hscodes <- xiao_xia_target_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+# Presenting the top 10 records in a data table (Source) for analysis
+datatable(head(xiao_xia_source_hscodes, 10), 
+          class="stripe",
+          caption = "\nTable 5: List of Business Entities with 'Xiao Xia' as the Source\n",
+          colnames = c("Target Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+
+# Presenting the top 10 records in a data table (Target) for analysis
+datatable(head(xiao_xia_target_hscodes, 10),
+          class="stripe",
+          caption = "\nTable 6:  List of Business Entities with 'Xiao Xia' as the Target\n",
+          colnames = c("Source Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+```
+
+::: {.callout-note title="Observations"}
+[**xiǎo xiā as the Source Provider**]{.underline}
+
+Table 5 shows that list of Business Entities with 'xiǎo xiā' as the Source Provider. From the list of HS Codes, we noted that 'xiǎo xiā Oyj Marine ecology' also provides other products such as:
+
+-   lighting or visual signalling equipment (for `hscode == 851220`)
+-   plastics e.g. polyacetals (for `hscode == 390720`)
+-   granite (for `hscode == 680293`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+
+[**xiǎo xiā as the Target Recipient**]{.underline}
+
+Table 6 shows the list of Business Entities with 'xiǎo xiā' as the Target Recipient. From the list of HS Codes, we noticed that 'xiǎo xiā Oyj Marine ecology' does not only accept fish and seafood, but printed paper or paperboard labels (for hscode = `482110`) among the others. However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
 :::
 
 ## 4.4. Looking at the In-Degree Centrality
 
-In-degree centrality is a measure of centrality in a network that focuses on incoming connections to a node. Nodes with high in-degree centrality have a larger number of connections pointing towards them, indicating that they receive a lot of resources from other nodes. 
+In-degree centrality is another measure of centrality in a network that focuses on incoming connections to a node. Nodes with high in-degree centrality have a larger number of connections pointing towards them, indicating that they receive a lot of resources from other nodes.
 
 ::: panel-tabset
 ### Distribution for In-Degree Centrality Index
@@ -638,45 +799,44 @@ plot_in
 :::
 
 ::: {.callout-note title="Observations from the Distribution of In-Degree Centrality Index"}
-It is observed that there are **27** nodes with significantly high in-degree centrality index (\>=600), which are likely to be the main resource collection points.
+It is observed that there are **27** nodes with significantly high in-degree centrality index (\>=600), which are likely to be transhipments/collection hubs for the fishing vessels.
 :::
 
 ### 4.4.1. Comparing the Different Centrality Indices
+
+For the purpose of analysis, we will focus on the top 10 entities that have the highest in-degree centrality indices.
 
 ```{r}
 # Extracting the top 10 entities with highest in-degree centrality
 nodes_df_in_top <- nodes_df %>%
   filter(in_degree >= 600) %>%
-  select(id, label, in_degree, in_bin, eigen_score, eigen_bin,
-         degree_score, deg_bin, betweenness_score, bet_bin, 
-         closeness_score, close_bin, out_degree, out_bin) %>%
+  select(id, label, in_degree, in_bin, 
+         eigen_score, eigen_bin, out_degree, out_bin) %>%
   arrange(desc(in_degree))
 
 top_10_in <- head(nodes_df_in_top,10)
   
 datatable(top_10_in, 
-          class="compact",
-          caption = "\nTable 3: Top 10 Business Entities with In-Degree Centrality Index\n",
+          class="stripe",
+          caption = "\nTable 7: Top 10 Business Entities with High In-Degree Centrality Index\n",
           colnames = c("ID", "Entity", "In-Degree Centrality Index",
                        "In-Degree Centrality Category",
-                       "Eigenvector Centrality Index", 
-                       "Eigenvector Centrality Category", 
-                       "Degree Centrality Index",
-                       "Degree Centrality Category", 
-                       "Betweenness Centrality Index",
-                       "Betweenness Centrality Category",
-                       "Closeness Centrality Index",
-                       "Closeness Centrality Category",
+                       "Eigenvector Centrality Index",
+                       "Eigenvector Centrality Category",
                        "Out-Degree Centrality Index",
-                       "Out-Degree Centrality Cateogy"),
+                       "Out-Degree Centrality Category"),
           options = list(
             columnDefs = list(list(className = 'dt-center', 
-                                   targets = 14))))
+                                   targets="_all"))))
 
 ```
 
+::: {.callout-note title="Observations"}
+It is noted that the 4 entities that have high eigenvector centrality indices in Section 4.2.2. are also listed in Table 7 above. This confirms our earlier suggestion that these nodes are likely to be key transhipments (main collection centres) for the fishing vessels within the network.
+:::
 
 ### 4.4.2. In-Degree Centrality Network Graph
+
 ```{r}
 # get the entity names for the edges
 edges_df_in <- edges_df %>%
@@ -697,24 +857,100 @@ visNetwork(nodes_in,
   visLayout(randomSeed = 1234) %>%
   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
              nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_in$id, size=10) %>%
-  visLegend() %>%  
+  visNodes(id = nodes_in$id, size=30) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%
   visEdges(arrows = "to", 
            smooth = list(enabled = TRUE, 
                          type = "curvedCW"))
 ```
 
 ::: {.callout-note title="Observations"}
-High in-degree centrality index suggests that these nodes are likely to be the fishery wharves/collection centres for the fishing vessels. It is noted that some of these nodes also have high eigenvector centrality index, indicating tha they are one of the key nodes within the network.
+The Network Graph above reaffirms that these nodes are likely to be the transhipments for the fishing vessels, in view of the number of incoming links to them.
 
-Most of these nodes have low values for degree centrality, out-degree centrality and closeness centrality indices.
-
+The graph above also highlighted one of the source provider nodes, "Adriatic Tuna Seabass BV Transit", has a moderately high value of in-degree centrality index (the node in red).
 :::
 
+### 4.4.3. Close Examination of "Adriatic Tuna Seabass BV Transit"
+
+As part of a close examination of "Adriatic Tuna Seabass BV Transit", we will extract out all the non-fishing related hscodes that involve this company as the source and target to further understand what are the resources that were being traded with the other entities. Once we extracted the relevant records, we will do a count of the number of edges with `n()` and analyse the top 10 records with the highest number of count.
+
+```{r}
+## Adriatic as the Source
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+adriatic_source_details <- mc2_edges %>%
+  filter(source == "Adriatic Tuna Seabass BV Transit") %>%
+  group_by(target, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
+  ungroup()
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+adriatic_source_hscodes <- adriatic_source_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+## Adriatic as the Target
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+adriatic_target_details <- mc2_edges %>%
+  filter(target == "Adriatic Tuna Seabass BV Transit") %>%
+  group_by(source, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  arrange(desc(weight)) %>%
+  distinct() %>%
+  ungroup()
+
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+adriatic_target_hscodes <- adriatic_target_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+# Presenting the top 10 records in a data table (Source) for analysis
+datatable(head(adriatic_source_hscodes, 10), 
+          class="stripe",
+          caption = "\nTable 8: List of Business Entities with 'Adriatic' as the Source\n",
+          colnames = c("Target Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+
+# Presenting the top 10 records in a data table (Target) for analysis
+datatable(head(adriatic_target_hscodes, 10), 
+          class="stripe",
+          caption = "\nTable 9:  List of Business Entities with 'Adriatic' as the Target\n",
+          colnames = c("Source Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+```
+
+::: {.callout-note title="Observations"}
+[**Adriatic as the Source Provider**]{.underline}
+
+Table 8 shows that list of Business Entities with 'Adriatic' as the Source Provider. From the list of HS Codes, we noted that 'Adriatic Tuna Seabass BV Transit' also provides other forms of consumables, particularly beancurd related products (for `hscode == 210690`) and mixtures of fruits, nuts and other edible parts of plants (for `hscode == 200897`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+
+[**Adriatic as the Target Recipient**]{.underline}
+
+Table 9 shows the list of Business Entities with 'Adriatic' as the Target Recipient. From the list of HS Codes, we noticed that 'Adriatic Tuna Seabass BV Transit' trades for a moderately high amount of pasta products (for `hscode == 190219`) and tableware and kitchenware products (for `hscode == 848210`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
+:::
 
 ## 4.5. Looking at the Out-Degree Centrality
 
-Out-degree centrality is a measure of centrality in a network that focuses on outgoing connections from a node. Nodes with high out-degree centrality have a larger number of connections pointing away from them, indicating that they have a greater reach and influence over other nodes. 
+Out-degree centrality is a measure of centrality in a network that focuses on outgoing connections from a node. Nodes with high out-degree centrality have a larger number of connections pointing away from them, indicating that they have a greater reach and influence over other nodes.
 
 ::: panel-tabset
 ### Distribution for Out-Degree Centrality Index
@@ -764,9 +1000,9 @@ plot_in
 :::
 
 ::: {.callout-note title="Observations from the Distribution of Out-Degree Centrality Index"}
-Majority of the entities in the network have low number of out-degree centrality index, which suggest that they are likely to be the fishing vessels within the network, contributing to one of the major fishery wharves/collection centres.
+Majority of the entities (99.8%) in the network have low number of out-degree centrality index, which suggest that they are likely to be the fishing vessels within the network, contributing to one of the major transhipment/fishery wharves/collection centres.
 
-It is observed that there are **18** nodes with significantly high out-degree centrality index (\>300), which we will study them in more details.
+It is observed that there are **18** nodes with significantly high out-degree centrality index (\>300), which we will study the top 10 nodes in more details.
 :::
 
 ### 4.5.1. Comparing the Different Centrality Indices
@@ -775,37 +1011,38 @@ It is observed that there are **18** nodes with significantly high out-degree ce
 # Extracting the top companies with highest out-degree centrality
 nodes_df_out <- nodes_df %>%
   filter(out_degree > 300) %>%
-  select(id, label, out_degree, out_bin, eigen_score, eigen_bin, 
-         degree_score, deg_bin, betweenness_score, bet_bin, 
-         closeness_score, close_bin, in_degree, in_bin) %>%
+  select(id, label, out_degree, out_bin, degree_score, deg_bin,
+         betweenness_score, bet_bin) %>%
   arrange(desc(out_degree))
 
+top_10_out <- head(nodes_df_out,10)
 
-datatable(nodes_df_out, 
+datatable(top_10_out, 
+          class="stripe",
+          caption = "\nTable 10: Top 10 Business Entities with High Out-Degree Centrality Index\n",
           colnames = c("ID", "Entity", "Out-Degree Centrality Index",
-                       "Out-Degree Centrality Cateogy",
-                       "Eigenvector Centrality Index", 
-                       "Eigenvector Centrality Category", 
+                       "Out-Degree Centrality Category",
                        "Degree Centrality Index",
                        "Degree Centrality Category", 
                        "Betweenness Centrality Index",
-                       "Betweenness Centrality Category",
-                       "Closeness Centrality Index",
-                       "Closeness Centrality Category",
-                       "In-Degree Centrality Index",
-                       "In-Degree Centrality Category"),
+                       "Betweenness Centrality Category"),
           options = list(
             columnDefs = list(list(className = 'dt-center', 
-                                   targets = 14))))
+                                  targets="_all"))))
 
 ```
 
+::: {.callout-note title="Observations"}
+It is observed that the top 10 entities with high value of out-degree centrality index, have a high value for degree centrality and 2 of them also have a high value for betweenness centrality index. This suggested that these 2 entities ("The Salty Dog Limited Liability Company" and "Aqua Aura SE Marine life") are likely to be the primary transhipment hubs within the network.
+:::
+
 ### 4.5.2. Out-Degree Centrality Network Graph
+
 ```{r}
 # get the company names for the edges
 edges_df_out <- edges_df %>%
-  filter(from %in% nodes_df_out$id |
-         to %in% nodes_df_out$id) %>%
+  filter(from %in% top_10_out$id |
+         to %in% top_10_out$id) %>%
   filter(weight > 30)
 
 # build the nodes table
@@ -821,129 +1058,358 @@ visNetwork(nodes_out,
   visLayout(randomSeed = 1234) %>%
   visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
              nodesIdSelection = TRUE) %>%
-  visNodes(id = nodes_out$id, size=10) %>%
-  visLegend() %>%  
+  visNodes(id = nodes_out$id, size=30) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%
   visEdges(arrows = "to", 
            smooth = list(enabled = TRUE, 
                          type = "curvedCW"))
 ```
 
 ::: {.callout-note title="Observations"}
-The entity with the highest out-degree centrality index, The Salty Dog Limited Liability Company, provides resources to other nodes with low value of out-degree centrality index.
+It is observed that while most of the nodes in this top 10 entities with high out-degree centrality indices, only have outgoing connections to the external nodes, the #1 entity at the top of the list, "The Salty Dog Limited Liability Company", actually has an incoming connection from another node, "Marine Adventures Ltd. Corporation Brothers". Hence, we will take a closer look at the exchanges between them.
+
+![](images/OutDegreeCentrality_SaltyDog.jpg){fig-align="center" width="356"}
 :::
 
-## 4.6. Eigenvector Centrality
+### 4.5.3. Close Examination of "Marine Adventures Ltd. Corporation Brothers"
 
-Eigenvector centrality is a measure to indicate the importance or influence of a node to the other nodes. It considers both the number of connections a node has and the importance of those connections. Nodes with high eigen centrality are not only connected to many other nodes but are also connected to nodes that have high eigen centrality.
-
-### 4.6.1. Data Preparation
+We will first of all, extract out all the exchanges between "Marine Adventures Ltd. Corporation Brothers" and "The Salty Dog Limited Liability Company", that do not fall under the fishing related hscodes and perform a closer examination of the other products (if any) that these 2 entities are trading.
 
 ```{r}
-mc2_edges_aggregated_eigen <- mc2_edges_aggregated %>%
-  filter(weight >80) %>%
+## Marine Adventures as the Source and Salty Dog as the Target
+# Extract all the non-fishing related hscodes from the original list of edges (i.e. mc2_edges)
+marine_source_details <- mc2_edges %>%
+  filter(source == "Marine Adventures Ltd. Corporation Brothers" &
+         target == "The Salty Dog Limited Liability Company") %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
   ungroup()
 
-id1_eigen <- mc2_edges_aggregated_eigen %>%
+marine_source_details
+```
+
+::: {.callout-note title="Observations"}
+Based on the results, it is concluded that 'Marine Adventures Ltd. Corporation Brothers' and 'The Salty Dog Limited Liability Company' do not trade any other products that are not related to fishing.
+:::
+
+
+# 5. Conclusion
+
+Even though there were no suspicious entities found to be involved in Illegal, Unreported and Unregulated (IUU) fishing, we have managed to identify the key transhipments in the network. It was also revealed that these transhipments do not necessary just receive the catches from the fishing vessels, but they also trade other goods/products with these fishing vessels. Some of the examples of goods and products involved weree identified in Sections 4.3 and 4.4 when we performed closer examinations of some of the key entities. 
+
+
+## 4.6. Visualising Community Over the Years
+
+**Year 2028**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2028 <- mc2_edges_aggregated %>%
+  filter(year==2028) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2028 <- mc2_edges_aggregated_comm_2028 %>%
   select(source) %>%
   rename(id = source)
-id2_eigen <- mc2_edges_aggregated_eigen %>%
+id2_comm_2028 <- mc2_edges_aggregated_comm_2028 %>%
   select(target) %>%
   rename(id = target)
 
 # create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
 
-mc2_nodes_extracted_eigen <- rbind(id1_eigen, id2_eigen) %>%
+mc2_nodes_extracted_comm_2028 <- rbind(id1_comm_2028, id2_comm_2028) %>%
   distinct()
 
-mc2_graph_eigen <- tbl_graph(nodes = mc2_nodes_extracted_eigen,
-                       edges = mc2_edges_aggregated_eigen,
+mc2_graph_comm_2028 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2028,
+                       edges = mc2_edges_aggregated_comm_2028,
                        directed = TRUE)
-
-```
-
-### 4.6.2. Plotting the Eigenvector Network Graph
-
-```{r}
-quantile_graph <- quantile(eigen_centrality(mc2_graph_eigen)$vector,
-                           probs = seq(0, 1, 1/10))
-
-V(mc2_graph_eigen)$size = eigen_centrality(mc2_graph_eigen)$vector
-
-mc2_graph_aggregated_eigen <- delete_vertices(mc2_graph_eigen,
-                                        V(mc2_graph_eigen)[size <                                                        quantile_graph[10]])
-
-set.seed (1234)
-
-layout1 <- layout_with_kk(mc2_graph_aggregated_eigen)
-
-#identify top 10% of the new vertices
-quantile_graph_aggregated <- quantile(V(mc2_graph_aggregated_eigen)$size,
-                                      probs = seq(0, 1, 1/10))
-
-# color yellow if vertices is top 10%
-V(mc2_graph_aggregated_eigen)$color <- ifelse (V(mc2_graph_aggregated_eigen)$size >
-                                           quantile_graph_aggregated[10],
-                                         "darkgoldenrod3", "azure3")
-
-# Greying out the edges so that the yellow nodes will stand out in the graph
-E(mc2_graph_aggregated_eigen)$color <- "grey"
-
-#Increase the size of nodes based on their centrality score, only those with high score will be visible
-V(mc2_graph_aggregated_eigen)$size <- V(mc2_graph_aggregated_eigen)$size/0.065
-
-plot(mc2_graph_aggregated_eigen, edge.arrow.size=0.25,edge.arrow.mode = "-",
-     main = "Most Important/Influential Business Entities in the Network",
-     width=30, height=12)
 ```
 
 ```{r}
-  vertex_attr(mc2_graph_aggregated_eigen,
-              index = V(mc2_graph_aggregated_eigen)$size*0.065 >
-                quantile_graph_aggregated[10])
+# Create tbl_graph object for the community analysis - Year 2028
+plot_2028 <- mc2_graph_comm_2028 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) +
+  labs(title="Year 2028 Community Network") +
+  theme(legend.position = "none")
+
 ```
 
-[**Observations:**]{.underline}
-
-Based on the EigenVector Centrality, there are a total of **4** business entities with its eigenvalue above the 90th percentile. These business entities are considered the most important/influential business entities in the network.
-
-### 4.7 Visualising Community
+**Year 2029**
 
 ```{r}
 # Data Preparation
-# mc2_edges_aggregated_comm <- mc2_edges_aggregated %>%
-#   filter(weight >700) %>%
-#   ungroup()
-# 
-# id1_comm <- mc2_edges_aggregated_comm %>%
-#   select(source) %>%
-#   rename(id = source)
-# id2_comm <- mc2_edges_aggregated_comm %>%
-#   select(target) %>%
-#   rename(id = target)
+mc2_edges_aggregated_comm_2029 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2029) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2029 <- mc2_edges_aggregated_comm_2029 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2029 <- mc2_edges_aggregated_comm_2029 %>%
+  select(target) %>%
+  rename(id = target)
 
 # create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
 
-# mc2_nodes_extracted_comm <- rbind(id1_comm, id2_comm) %>%
-#   distinct()
-# 
-# mc2_graph_comm <- tbl_graph(nodes = mc2_nodes_extracted_comm,
-#                        edges = mc2_edges_aggregated_comm,
-#                        directed = TRUE)
-# 
+mc2_nodes_extracted_comm_2029 <- rbind(id1_comm_2029, id2_comm_2029) %>%
+  distinct()
 
+mc2_graph_comm_2029 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2029,
+                       edges = mc2_edges_aggregated_comm_2029,
+                       directed = TRUE)
 ```
 
 ```{r}
-# Create tbl_graph object for the community analysis
-# g <- mc2_graph_comm %>%
-#   mutate(community = as.factor(group_optimal(weights = weight))) %>%
-#   ggraph(layout = "fr") +
-#   geom_edge_link(aes(width=weight),
-#                  alpha=0.2) +
-#   scale_edge_width(range = c(0.1, 5)) +
-#   geom_node_point(aes(colour = community))
-# 
-# g + theme_graph()
+# Create tbl_graph object for the community analysis - Year 2029
+plot_2029 <- mc2_graph_comm_2029 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2029 Community Network") + 
+  theme(legend.position = "none")
+```
+
+**Year 2030**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2030 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2030) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2030 <- mc2_edges_aggregated_comm_2030 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2030 <- mc2_edges_aggregated_comm_2030 %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_comm_2030 <- rbind(id1_comm_2030, id2_comm_2030) %>%
+  distinct()
+
+mc2_graph_comm_2030 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2030,
+                       edges = mc2_edges_aggregated_comm_2030,
+                       directed = TRUE)
+```
+
+```{r}
+# Create tbl_graph object for the community analysis - Year 2030
+plot_2030 <- mc2_graph_comm_2030 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2030 Community Network") + 
+  theme(legend.position = "none")
+```
+
+**Year 2031**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2031 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2031) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2031 <- mc2_edges_aggregated_comm_2031 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2031 <- mc2_edges_aggregated_comm_2031 %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_comm_2031 <- rbind(id1_comm_2031, id2_comm_2031) %>%
+  distinct()
+
+mc2_graph_comm_2031 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2031,
+                       edges = mc2_edges_aggregated_comm_2031,
+                       directed = TRUE)
+```
+
+```{r}
+# Create tbl_graph object for the community analysis - Year 2031
+plot_2031 <- mc2_graph_comm_2031 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2031 Community Network") + 
+  theme(legend.position = "none")
+```
+
+**Year 2032**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2032 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2032) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2032 <- mc2_edges_aggregated_comm_2032 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2032 <- mc2_edges_aggregated_comm_2032 %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_comm_2032 <- rbind(id1_comm_2032, id2_comm_2032) %>%
+  distinct()
+
+mc2_graph_comm_2032 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2032,
+                       edges = mc2_edges_aggregated_comm_2032,
+                       directed = TRUE)
+```
+
+```{r}
+# Create tbl_graph object for the community analysis - Year 2032
+plot_2032 <- mc2_graph_comm_2032 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2032 Community Network") + 
+  theme(legend.position = "none")
+
+```
+
+**Year 2033**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2033 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2033) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2033 <- mc2_edges_aggregated_comm_2033 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2033 <- mc2_edges_aggregated_comm_2033 %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_comm_2033 <- rbind(id1_comm_2033, id2_comm_2033) %>%
+  distinct()
+
+mc2_graph_comm_2033 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2033,
+                       edges = mc2_edges_aggregated_comm_2033,
+                       directed = TRUE)
+```
+
+```{r}
+# Create tbl_graph object for the community analysis - Year 2033
+plot_2033 <- mc2_graph_comm_2033 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2033 Community Network") + 
+  theme(legend.position = "none")
+```
+
+**Year 2034**
+
+```{r}
+# Data Preparation
+mc2_edges_aggregated_comm_2034 <- mc2_edges_aggregated %>%
+#  filter(weight >50) %>%
+  filter(year==2034) %>%
+  distinct() %>%
+  ungroup()
+
+id1_comm_2034 <- mc2_edges_aggregated_comm_2034 %>%
+  select(source) %>%
+  rename(id = source)
+id2_comm_2034 <- mc2_edges_aggregated_comm_2034 %>%
+  select(target) %>%
+  rename(id = target)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+
+mc2_nodes_extracted_comm_2034 <- rbind(id1_comm_2034, id2_comm_2034) %>%
+  distinct()
+
+mc2_graph_comm_2034 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2034,
+                       edges = mc2_edges_aggregated_comm_2034,
+                       directed = TRUE)
+```
+
+```{r}
+# Create tbl_graph object for the community analysis - Year 2034
+plot_2034 <- mc2_graph_comm_2034 %>%
+  mutate(community = as.factor(group_components(type = "weak"))) %>%
+  ggraph(layout = "kk") +
+  geom_edge_link(aes(width=weight),
+                 alpha=0.2) +
+  scale_edge_width(range = c(0.1, 5)) +
+  geom_node_point(aes(colour = community)) + 
+  labs(title="Year 2034 Community Network") + 
+  theme(legend.position = "none")
+```
+
+**Stacking the plots together**
+
+```{r}
+# Arrange the plots in a 2x4 grid with defined widths and heights
+# plot_grid(plot_2028, plot_2029, plot_2030, plot_2031, 
+#           plot_2032, plot_2033, plot_2034, nrow=4, ncol=2)
+
+
+# plot_grid(
+#   p1, p2, p3, p4,
+#   align = 'hv',
+#   rel_heights = c(2,1),
+#   rel_widths = c(1,2)
+# )
+
+
+plot_grid(
+  plot_grid(plot_2028, plot_2029, ncol = 2),
+  plot_grid(plot_2030, plot_2031, ncol = 2),
+  plot_grid(plot_2032, plot_2033, ncol = 2),
+  plot_grid(plot_2034, ncol=2),
+  nrow = 4,
+  align = "h",
+  axis = "lr"
+)
+
 ```
 
 ```{r}
