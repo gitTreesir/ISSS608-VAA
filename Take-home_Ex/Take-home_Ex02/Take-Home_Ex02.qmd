@@ -41,13 +41,12 @@ The required R library packages are being loaded. For this exercise, we will mak
 -   **igraph** a library collection for creating and manipulating graphs and analyzing networks.
 -   **tidyverse**, a family of modern R packages specially designed to support data science, analysis and communication task including creating static statistical graphs.
 -   **DT** provides an R interface to the JavaScript library DataTables that create interactive table on html page.
--   **cowplot** provides functions to arrange multiple grid-based plots on a page.
 
 The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
 
 ```{r}
 pacman::p_load(jsonlite, tidygraph, ggraph, visNetwork, lubridate,
-               igraph, tidyverse, DT, cowplot)
+               igraph, tidyverse, DT)
 ```
 
 # 3. Data Preparation
