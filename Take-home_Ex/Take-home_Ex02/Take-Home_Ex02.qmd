@@ -10,7 +10,7 @@ execute:
   freeze: auto  
 format: 
   html:
-    code-fold: false
+    code-fold: true
     code-summary: "Show the codes"
     code-overflow: wrap
     code-block-bg: true
@@ -19,7 +19,7 @@ engine: knitr
 
 # 1. Overview
 
-With reference to the [Mini-Challenge 2](#0) of [VAST Challenge 2023](#0) and by using appropriate **static and interactive statistical graphics** methods, we will help FishEye identify companies that may be engaged in illegal fishing.
+With reference to the [Mini-Challenge 2](#0) of [VAST Challenge 2023](#0) and by using appropriate **static and interactive statistical graphics** methods, we will help FishEye identify companies that may be engaged in Illegal, unreported, and unregulated (IUU) fishing.
 
 ## 1.1. The Task
 
@@ -444,6 +444,7 @@ nodes_eigen <- nodes_df %>%
   rename(group = eigen_bin) %>%
   arrange(label)
 
+
 visNetwork(nodes_eigen,
            edges_df_eigen,
            main = "Network Graph of the Top 4 Entities with High Eigenvector Centrality") %>%
@@ -596,6 +597,7 @@ We will extract out all the non-fishing related hscodes that involve this compan
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 salty_dog_source_details <- mc2_edges %>%
   filter(source == "The Salty Dog Limited Liability Company") %>%
+  filter(source != target) %>%
   group_by(target, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   distinct() %>%
@@ -616,6 +618,7 @@ salty_dog_source_hscodes <- salty_dog_source_details %>%
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 salty_dog_target_details <- mc2_edges %>%
   filter(target == "The Salty Dog Limited Liability Company") %>%
+  filter(source != target) %>%
   group_by(source, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   arrange(desc(weight)) %>%
@@ -658,11 +661,11 @@ datatable(head(salty_dog_target_hscodes,10),
 ::: {.callout-note title="Observations"}
 [**Salty Dog as the Source Provider**]{.underline}
 
-Table 3 shows that list of Business Entities with 'Salty Dog' as the Source Provider. From the list of HS Codes, we noted that 'The Salty Dog Limited Liability Company' also provides other forms of consumables, particularly vegetables (for hscodes starting with `710` to `713`) to the respective parties. Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+Table 3 shows that list of Business Entities with 'Salty Dog' as the Source Provider. From the list of HS Codes, we noted that 'The Salty Dog Limited Liability Company' also provides other forms of consumables, particularly vegetables (for hscodes starting with `710` to `713`) to the respective parties. Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be related to IUU fishing.
 
 [**Salty Dog as the Target Recipient**]{.underline}
 
-Table 4 shows the list of Business Entities with 'Salty Dog' as the Target Recipient. From the list of HS Codes, we noticed that 'The Salty Dog Limited Liability Company' does not only accept fish and seafood, but also other products such as bags, container cases/boxes with outer surface of plastics or of textile materials (for `hscode == 420212`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
+Table 4 shows the list of Business Entities with 'Salty Dog' as the Target Recipient. From the list of HS Codes, we noticed that 'The Salty Dog Limited Liability Company' does not only accept fish and seafood, but also other products such as bags, container cases/boxes with outer surface of plastics or of textile materials (for `hscode == 420212`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be related to IUU fishing.
 :::
 
 ### 4.3.4. Close Examination of "xiǎo xiā Oyj Marine ecology"
@@ -674,6 +677,7 @@ Similarly for the close examination of "xiǎo xiā Oyj Marine ecology", we will 
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 xiao_xia_source_details <- mc2_edges %>%
   filter(source == "xiǎo xiā Oyj Marine ecology") %>%
+  filter(source != target) %>%
   group_by(target, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   distinct() %>%
@@ -694,6 +698,7 @@ xiao_xia_source_hscodes <- xiao_xia_source_details %>%
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 xiao_xia_target_details <- mc2_edges %>%
   filter(target == "xiǎo xiā Oyj Marine ecology") %>%
+  filter(source != target) %>%
   group_by(source, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   arrange(desc(weight)) %>%
@@ -740,11 +745,11 @@ Table 5 shows that list of Business Entities with 'xiǎo xiā' as the Source Pro
 
 -   lighting or visual signalling equipment (for `hscode == 851220`)
 -   plastics e.g. polyacetals (for `hscode == 390720`)
--   granite (for `hscode == 680293`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+-   granite (for `hscode == 680293`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be related to IUU fishing.
 
 [**xiǎo xiā as the Target Recipient**]{.underline}
 
-Table 6 shows the list of Business Entities with 'xiǎo xiā' as the Target Recipient. From the list of HS Codes, we noticed that 'xiǎo xiā Oyj Marine ecology' does not only accept fish and seafood, but printed paper or paperboard labels (for hscode = `482110`) among the others. However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
+Table 6 shows the list of Business Entities with 'xiǎo xiā' as the Target Recipient. From the list of HS Codes, we noticed that 'xiǎo xiā Oyj Marine ecology' does not only accept fish and seafood, but printed paper or paperboard labels (for hscode = `482110`) among the others. However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be related to IUU fishing.
 :::
 
 ## 4.4. Looking at the In-Degree Centrality
@@ -879,6 +884,7 @@ As part of a close examination of "Adriatic Tuna Seabass BV Transit", we will ex
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 adriatic_source_details <- mc2_edges %>%
   filter(source == "Adriatic Tuna Seabass BV Transit") %>%
+  filter(source != target) %>%
   group_by(target, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   distinct() %>%
@@ -899,6 +905,7 @@ adriatic_source_hscodes <- adriatic_source_details %>%
 # Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
 adriatic_target_details <- mc2_edges %>%
   filter(target == "Adriatic Tuna Seabass BV Transit") %>%
+  filter(source != target) %>%
   group_by(source, weightkg, hscode, year) %>%
   summarise(weight = n()) %>%
   arrange(desc(weight)) %>%
@@ -941,11 +948,11 @@ datatable(head(adriatic_target_hscodes, 10),
 ::: {.callout-note title="Observations"}
 [**Adriatic as the Source Provider**]{.underline}
 
-Table 8 shows that list of Business Entities with 'Adriatic' as the Source Provider. From the list of HS Codes, we noted that 'Adriatic Tuna Seabass BV Transit' also provides other forms of consumables, particularly beancurd related products (for `hscode == 210690`) and mixtures of fruits, nuts and other edible parts of plants (for `hscode == 200897`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be illegal.
+Table 8 shows that list of Business Entities with 'Adriatic' as the Source Provider. From the list of HS Codes, we noted that 'Adriatic Tuna Seabass BV Transit' also provides other forms of consumables, particularly beancurd related products (for `hscode == 210690`) and mixtures of fruits, nuts and other edible parts of plants (for `hscode == 200897`). Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be related to IUU fishing.
 
 [**Adriatic as the Target Recipient**]{.underline}
 
-Table 9 shows the list of Business Entities with 'Adriatic' as the Target Recipient. From the list of HS Codes, we noticed that 'Adriatic Tuna Seabass BV Transit' trades for a moderately high amount of pasta products (for `hscode == 190219`) and tableware and kitchenware products (for `hscode == 848210`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be illegal.
+Table 9 shows the list of Business Entities with 'Adriatic' as the Target Recipient. From the list of HS Codes, we noticed that 'Adriatic Tuna Seabass BV Transit' trades for a moderately high amount of pasta products (for `hscode == 190219`) and tableware and kitchenware products (for `hscode == 848210`). However, given that the values of the `Count` column were not extremely high, we conclude that the trades were unlikely to be related to IUU fishing.
 :::
 
 ## 4.5. Looking at the Out-Degree Centrality
@@ -1096,352 +1103,302 @@ Based on the results, it is concluded that 'Marine Adventures Ltd. Corporation B
 :::
 
 
+## 4.6. Looking at the Betweenness Centrality
+
+Betweenness centrality is a measure of the importance or influence of a node in a network based on its ability to connect other nodes. Nodes with high betweenness centrality act as bridges or intermediaries, connecting different parts of the network and have the potential to control the flow of information or influence within the network.
+
+In the context of this exercise, nodes with high betweenness centrality might potentially be impact the network.
+
+::: panel-tabset
+### Distribution of Betweeness Centrality Index
+
+```{r}
+#| echo: false
+
+# Get the count of the records in each bin
+nodes_df_bet_gp <- nodes_df %>%
+  group_by(bet_bin) %>%
+  summarise(cnt = n())
+
+# Create a distribution with bar chart using ggplot2
+plot_bet <- ggplot(nodes_df_bet_gp, aes(x = bet_bin, y = cnt)) +
+  geom_bar(stat = "identity", fill = "deepskyblue3") +
+  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
+  labs(x = "\nBetweeenness Centrality", y = "Count\n", 
+       title = "Distribution of Betweenness Centrality of the Nodes") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot_bet
+```
+
+### Code Chunk
+
+```{r}
+# Get the count of the records in each bin
+nodes_df_bet_gp <- nodes_df %>%
+  group_by(bet_bin) %>%
+  summarise(cnt = n())
+
+# Create a distribution with bar chart using ggplot2
+plot_bet <- ggplot(nodes_df_bet_gp, aes(x = bet_bin, y = cnt)) +
+  geom_bar(stat = "identity", fill = "deepskyblue3") +
+  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
+  labs(x = "\nBetweeenness Centrality", y = "Count\n", 
+       title = "Distribution of Betweenness Centrality of the Nodes") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+plot_bet
+```
+:::
+
+::: {.callout-note title="Observations from the Distribution of Betweeness Centrality Index"}
+The betweenness centrality distribution revealed that a large number of nodes has a low value and might potentially be the fishing vessels or small clusters without much influence to the entire network.
+
+However, it is noted that there are **11** nodes with very high betweenness centrality index (\>=500K), and we should take a closer look at them to understand their relationships with the other nodes.
+:::
+
+### 4.6.1. Comparing the Different Centrality Indices
+
+For the purpose of analysis, we will focus on the top 11 entities that have the highest betweenness centrality indices.
+
+```{r}
+# Extract the Top 11 nodes with extremely high betweenness centrality index
+
+nodes_df_bet_top11 <- nodes_df %>%
+  filter(betweenness_score >= 500000) %>%
+  select(id, label, betweenness_score, bet_bin, 
+         in_degree, in_bin, out_degree, out_bin) %>%  
+  arrange(desc(betweenness_score))
+
+datatable(nodes_df_bet_top11, 
+          class="stripe",
+          caption = "\nTable 11: Top 11 Business Entities with High Betweenness Centrality Index\n",
+          colnames = c("ID", "Entity", "Betweenness Centrality Index", 
+                       "Betweenness Centrality Category", "In-Degree Centrality Index",
+                       "In-Degree Centrality Category", "Out-Degree Centrality Index",
+                       "Out-Degree Centrality Cateogy"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', targets = "_all"))))
+```
+
+::: {.callout-note title="Observations"}
+Table 11 above revealed that 10 out of the 11 entities have low values for their in-degree and out-degree centrality indices.
+
+'David Ltd. Liability Co Forwading' is the only entity with a h in-degree centrality index that is in the medium range of (300-599). We will take a closer look at this.
+:::
+
+### 4.6.2. Betweenness Centrality Network Graph
+
+```{r}
+# get the entity names for the edges
+edges_df_bet <- edges_df %>%
+  filter(from %in% nodes_df_bet_top11$id |
+         to %in% nodes_df_bet_top11$id) %>%
+  filter(weight > 20)
+
+# build the nodes table
+nodes_bet <- nodes_df %>%
+  filter(id %in% c(edges_df_bet$from, edges_df_bet$to)) %>%
+  rename(group = bet_bin) %>%
+  arrange(label)
+
+visNetwork(nodes_bet,
+           edges_df_bet,
+           main = "Entities with High Betweeness Centrality Index") %>%
+  visIgraphLayout(layout = "layout_with_kk") %>%
+  visLayout(randomSeed = 1234) %>%
+  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
+             nodesIdSelection = TRUE) %>%
+  visNodes(id = nodes_bet$id, size=30) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%
+  visEdges(arrows = "to", 
+           smooth = list(enabled = TRUE))
+```
+
+::: {.callout-note title="Observations"}
+The network graph above shows that there are 2 big clusters of nodes.
+
+![](images/HighBetCentrality_Cluster1.jpg){fig-align="center"}
+
+The image above shows that 'Perla del Mar Deep-sea' is the key node that connects the 2 nodes ('Punjab s Marine Conservation' and 'David Ltd. Liability Co Forwading') with high betweenness indices.
+
+![](images/HighBetCentrality_Cluster2.jpg){fig-align="center"}
+
+The second image shows that 'Caracola del Sol Services' is the key node that connects the 3 nodes ('Marine Mates NV Worldwide', 'Yenisei Eel GmbH & Co. KG Services' and 'Turkish Salmon A/S Marine') with high betweenness indices.
+:::
+
+
+### 4.6.3. Close Examination of "Perla del Mar Deep-sea"
+
+We will extract out all the non-fishing related hscodes that involve this company as the source and target to further understand what are the resources that were being traded with the other entities. Once we extracted the relevant records, we will do a count of the number of edges with `n()` and analyse the top 10 records with the highest number of count.
+
+```{r}
+## Perla as the Source
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+perla_source_details <- mc2_edges %>%
+  filter(source == "Perla del Mar Deep-sea") %>%
+  filter(source != target) %>%
+  group_by(target, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
+  ungroup()
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+perla_source_hscodes <- perla_source_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+## Perla as the Target
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+perla_target_details <- mc2_edges %>%
+  filter(target == "Perla del Mar Deep-sea") %>%
+  filter(source != target) %>%
+  group_by(source, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  arrange(desc(weight)) %>%
+  distinct() %>%
+  ungroup()
+
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+perla_target_hscodes <- perla_target_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+# Presenting the records in a data table (Source) for analysis
+datatable(perla_source_hscodes, 
+          class="stripe",
+          caption = "\nTable 12: List of Business Entities with 'Perla' as the Source\n",
+          colnames = c("Target Entity", "Weightkg", 
+                       "HS Code", "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+
+# Presenting the top 10 records in a data table (Target) for analysis
+datatable(head(perla_target_hscodes,10), 
+          class="stripe",
+          caption = "\nTable 13:  List of Business Entities with 'Perla' as the Target\n",
+          colnames = c("Source Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+```
+
+::: {.callout-note title="Observations"}
+[**Perla as the Source Provider**]{.underline}
+
+Table 12 shows that list of Business Entities with 'Perla' as the Source Provider. From the list of HS Codes, we noted that 'Perla del Mar Deep-sea' also provides other variety of products such as rubber pneumatic tyres for tractors, machinery (`hscode == 401180`) upholstered seats (`hscode == 940161`) to other entities. Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be related to IUU fishing.
+
+[**Perla as the Target Recipient**]{.underline}
+
+Table 13 shows the list of Business Entities with 'Perla' as the Target Recipient. From the list of HS Codes, we noticed that 'Perla del Mar Deep-sea' does not only accept fish and seafood, but also 
+parts suitable for use solely or principally with spark-ignition internal combustion piston engines (for `hscode == 840991`) **from 'Costa del Sol Sp', particularly in Year 2028 and 2029**.
+:::
+
+
+### 4.6.4. Close Examination of "Caracola del Sol Services"
+
+We will extract out all the non-fishing related hscodes that involve this company as the source and target to further understand what are the resources that were being traded with the other entities. Once we extracted the relevant records, we will do a count of the number of edges with `n()` and analyse the top 10 records with the highest number of count.
+
+```{r}
+## Caracola as the Source
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+caracol_source_details <- mc2_edges %>%
+  filter(source == "Caracola del Sol Services") %>%
+  filter(source != target) %>%
+  group_by(target, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  distinct() %>%
+  ungroup()
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+caracol_source_hscodes <- caracol_source_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+## Caracola as the Target
+# Extract all the list of hscodes from the original list of edges (i.e. mc2_edges)
+caracol_target_details <- mc2_edges %>%
+  filter(target == "Caracola del Sol Services") %>%
+  filter(source != target) %>%
+  group_by(source, weightkg, hscode, year) %>%
+  summarise(weight = n()) %>%
+  arrange(desc(weight)) %>%
+  distinct() %>%
+  ungroup()
+
+
+# Extract the non-fishing related hscodes and year; and
+# sort the records by the weight in descending order
+caracol_target_hscodes <- caracol_target_details %>%
+  filter(!(substr(hscode, 1, 3) %in% rel_hscodes_3) &
+         !(substr(hscode, 1, 4) %in% rel_hscodes_4)) %>%
+  group_by(weightkg, hscode, year, weight) %>%
+  distinct() %>%
+  arrange(desc(weight)) %>%
+  ungroup()
+
+
+# Presenting the records in a data table (Source) for analysis
+datatable(head(caracol_source_hscodes,10), 
+          class="stripe",
+          caption = "\nTable 14: List of Business Entities with 'Caracola' as the Source\n",
+          colnames = c("Target Entity", "Weightkg", 
+                       "HS Code", "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+
+# Presenting the top 10 records in a data table (Target) for analysis
+datatable(head(caracol_target_hscodes,10), 
+          class="stripe",
+          caption = "\nTable 15:  List of Business Entities with 'Caracola' as the Target\n",
+          colnames = c("Source Entity", "Weightkg", "HS Code",
+                       "Year", "Count"),
+          options = list(
+            columnDefs = list(list(className = 'dt-center', 
+                                   targets="_all"))))
+```
+
+::: {.callout-note title="Observations"}
+[**Caracola as the Source Provider**]{.underline}
+
+Table 14 shows that list of Business Entities with 'Caracola' as the Source Provider. From the list of HS Codes, we noted that 'Caracola del Sol Services' also provides other variety of products such as rubber pneumatic tyres for tractors, machinery (`hscode == 401180`) upholstered seats (`hscode == 940161`) to other entities. Based on the value of the `Count` column for these products, we conclude that the trades were unlikely to be related to IUU fishing.
+
+[**Caracola as the Target Recipient**]{.underline}
+
+Table 15 shows the list of Business Entities with 'Caracola' as the Target Recipient. From the list of HS Codes, we noticed that 'Caracola del Sol Services' does not only accept fish and seafood, but also a significant volumn of other products such as:
+
+-   articles for the conveyance or packing of goods, of plastics; stoppers, lids, caps and other closures, of plastics (`hscode == 392390`) 
+-   aluminium alloys (`hscode == 760120`).
+
+Since these items are not directly linked to IUU fishing activities, we conclude that the trades were unlikely to be related to IUU fishing.
+:::
+
+
+
 # 5. Conclusion
 
-Even though there were no suspicious entities found to be involved in Illegal, Unreported and Unregulated (IUU) fishing, we have managed to identify the key transhipments in the network. It was also revealed that these transhipments do not necessary just receive the catches from the fishing vessels, but they also trade other goods/products with these fishing vessels. Some of the examples of goods and products involved weree identified in Sections 4.3 and 4.4 when we performed closer examinations of some of the key entities. 
-
-
-## 4.6. Visualising Community Over the Years
-
-**Year 2028**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2028 <- mc2_edges_aggregated %>%
-  filter(year==2028) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2028 <- mc2_edges_aggregated_comm_2028 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2028 <- mc2_edges_aggregated_comm_2028 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2028 <- rbind(id1_comm_2028, id2_comm_2028) %>%
-  distinct()
-
-mc2_graph_comm_2028 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2028,
-                       edges = mc2_edges_aggregated_comm_2028,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2028
-plot_2028 <- mc2_graph_comm_2028 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) +
-  labs(title="Year 2028 Community Network") +
-  theme(legend.position = "none")
-
-```
-
-**Year 2029**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2029 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2029) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2029 <- mc2_edges_aggregated_comm_2029 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2029 <- mc2_edges_aggregated_comm_2029 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2029 <- rbind(id1_comm_2029, id2_comm_2029) %>%
-  distinct()
-
-mc2_graph_comm_2029 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2029,
-                       edges = mc2_edges_aggregated_comm_2029,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2029
-plot_2029 <- mc2_graph_comm_2029 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2029 Community Network") + 
-  theme(legend.position = "none")
-```
-
-**Year 2030**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2030 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2030) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2030 <- mc2_edges_aggregated_comm_2030 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2030 <- mc2_edges_aggregated_comm_2030 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2030 <- rbind(id1_comm_2030, id2_comm_2030) %>%
-  distinct()
-
-mc2_graph_comm_2030 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2030,
-                       edges = mc2_edges_aggregated_comm_2030,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2030
-plot_2030 <- mc2_graph_comm_2030 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2030 Community Network") + 
-  theme(legend.position = "none")
-```
-
-**Year 2031**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2031 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2031) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2031 <- mc2_edges_aggregated_comm_2031 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2031 <- mc2_edges_aggregated_comm_2031 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2031 <- rbind(id1_comm_2031, id2_comm_2031) %>%
-  distinct()
-
-mc2_graph_comm_2031 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2031,
-                       edges = mc2_edges_aggregated_comm_2031,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2031
-plot_2031 <- mc2_graph_comm_2031 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2031 Community Network") + 
-  theme(legend.position = "none")
-```
-
-**Year 2032**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2032 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2032) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2032 <- mc2_edges_aggregated_comm_2032 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2032 <- mc2_edges_aggregated_comm_2032 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2032 <- rbind(id1_comm_2032, id2_comm_2032) %>%
-  distinct()
-
-mc2_graph_comm_2032 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2032,
-                       edges = mc2_edges_aggregated_comm_2032,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2032
-plot_2032 <- mc2_graph_comm_2032 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2032 Community Network") + 
-  theme(legend.position = "none")
-
-```
-
-**Year 2033**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2033 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2033) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2033 <- mc2_edges_aggregated_comm_2033 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2033 <- mc2_edges_aggregated_comm_2033 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2033 <- rbind(id1_comm_2033, id2_comm_2033) %>%
-  distinct()
-
-mc2_graph_comm_2033 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2033,
-                       edges = mc2_edges_aggregated_comm_2033,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2033
-plot_2033 <- mc2_graph_comm_2033 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2033 Community Network") + 
-  theme(legend.position = "none")
-```
-
-**Year 2034**
-
-```{r}
-# Data Preparation
-mc2_edges_aggregated_comm_2034 <- mc2_edges_aggregated %>%
-#  filter(weight >50) %>%
-  filter(year==2034) %>%
-  distinct() %>%
-  ungroup()
-
-id1_comm_2034 <- mc2_edges_aggregated_comm_2034 %>%
-  select(source) %>%
-  rename(id = source)
-id2_comm_2034 <- mc2_edges_aggregated_comm_2034 %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc2_nodes_extracted_comm_2034 <- rbind(id1_comm_2034, id2_comm_2034) %>%
-  distinct()
-
-mc2_graph_comm_2034 <- tbl_graph(nodes = mc2_nodes_extracted_comm_2034,
-                       edges = mc2_edges_aggregated_comm_2034,
-                       directed = TRUE)
-```
-
-```{r}
-# Create tbl_graph object for the community analysis - Year 2034
-plot_2034 <- mc2_graph_comm_2034 %>%
-  mutate(community = as.factor(group_components(type = "weak"))) %>%
-  ggraph(layout = "kk") +
-  geom_edge_link(aes(width=weight),
-                 alpha=0.2) +
-  scale_edge_width(range = c(0.1, 5)) +
-  geom_node_point(aes(colour = community)) + 
-  labs(title="Year 2034 Community Network") + 
-  theme(legend.position = "none")
-```
-
-**Stacking the plots together**
-
-```{r}
-# Arrange the plots in a 2x4 grid with defined widths and heights
-# plot_grid(plot_2028, plot_2029, plot_2030, plot_2031, 
-#           plot_2032, plot_2033, plot_2034, nrow=4, ncol=2)
-
-
-# plot_grid(
-#   p1, p2, p3, p4,
-#   align = 'hv',
-#   rel_heights = c(2,1),
-#   rel_widths = c(1,2)
-# )
-
-
-plot_grid(
-  plot_grid(plot_2028, plot_2029, ncol = 2),
-  plot_grid(plot_2030, plot_2031, ncol = 2),
-  plot_grid(plot_2032, plot_2033, ncol = 2),
-  plot_grid(plot_2034, ncol=2),
-  nrow = 4,
-  align = "h",
-  axis = "lr"
-)
-
-```
-
-```{r}
-### Exporting to CSV for closer examination
-# write_csv(x = final_MC2_nodes_noNA, "data/generated/final_MC2_nodes_noNA.csv")
-# write_csv(x = MC2_edges_aggregated, "data/generated/mc2_edges_agg.csv")
-# write_csv(x = valid_edges, "data/generated/valid_edges.csv")
-```
-
-```{r}
-### Exporting to CSV for closer examination
-# write_csv(x = mc2_nodes, "data/generated/mc2_nodes.csv")
-# write_csv(x = mc2_edges, "data/generated/mc2_edges.csv")
-```
-
-```{r}
-#| eval: false
-# mc2_graph <- read_rds("data/generated/mc2_graph.rds")
-# mc2_nodes <- read_rds("data/generated/mc2_nodes.rds")
-# mc2_edges <- read_rds("data/generated/mc2_edges.rds")
-```
-
-```{r}
-#| eval: false
-# write_rds(mc2_nodes, "data/generated/mc2_nodes.rds")
-# write_rds(mc2_edges, "data/generated/mc2_edges.rds")
-# write_rds(mc2_nodes, "data/generated/mc2_nodes_extracted.rds")
-# write_rds(mc2_edges, "data/generated/mc2_edges_aggregated.rds")
-# write_rds(mc2_graph, "data/generated/mc2_graph.rds")
-```
-
-```{r}
-#| eval: false
-# write_csv(x = nodes_df, "data/generated/nodes_df.csv")
-```
+Even though there were no suggested suspicious entities found to be involved in Illegal, Unreported and Unregulated (IUU) fishing, we have managed to identify the key transhipments in the network. It was also revealed that these transhipments do not necessary just receive the catches from the fishing vessels, but they also trade (either as a provider or recipient) other goods/products with these fishing vessels. These were discovered when we performed closer examinations of some of the key business entities identified in Sections 4.3 to 4.6. 

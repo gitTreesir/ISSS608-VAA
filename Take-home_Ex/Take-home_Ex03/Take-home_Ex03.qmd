@@ -1,0 +1,100 @@
+---
+title: "Take-Home Exercise 03"
+author: "Ong Chae Hui"
+date: 1 Jun 2023
+date-modified: "`r Sys.Date()`"
+execute:
+  echo: true
+  eval: true
+  warning: false
+  freeze: auto  
+format: 
+  html:
+    code-fold: false
+    code-summary: "Show the codes"
+    code-overflow: wrap
+    code-block-bg: true
+engine: knitr
+---
+
+# 1. Overview
+
+With reference to the [Mini-Challenge 3](#0) of [VAST Challenge 2023](#0) and by using appropriate **static and interactive statistical graphics** methods, we will help FishEye identify companies that may be engaged in illegal fishing.
+
+## 1.1. The Task
+
+## 1.2. Data Source
+
+For this task, we will make use of the *MC3.json* provided for the data analysis and visualisation.
+
+# 2. Loading and Launching of Required R Packages
+
+The required R library packages are being loaded. For this exercise, we will make use of the following R library packages.
+
+-   **jsonlite**, JSON parser and generator optimized for statistical data and the web.
+-   **tidygraph** provides a tidy framework for all things relational (networks/graphs, trees, etc.)
+-   **ggraph**, an extension of the ggplot2 API tailored to graph visualizations and provides the same flexible approach to building up plots layer by layer.
+-   **visNetwork** for network visualization.
+-   **lubridate** is an R package that makes it easier to work with dates and times.
+-   **igraph** a library collection for creating and manipulating graphs and analyzing networks.
+-   **tidyverse**, a family of modern R packages specially designed to support data science, analysis and communication task including creating static statistical graphs.
+-   **DT** provides an R interface to the JavaScript library DataTables that create interactive table on html page.
+-   **cowplot** provides functions to arrange multiple grid-based plots on a page.
+
+The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
+
+```{r}
+pacman::p_load(jsonlite, tidygraph, ggraph, visNetwork, lubridate,
+               igraph, tidyverse, DT, cowplot)
+```
+
+# 3. Data Preparation
+
+We will first load each of the data files into the environment and perform data wrangling.
+
+## 3.1. Loading and Extracting the Data
+
+Based on the VAST 2023 data notes, column `dataset` will always be 'mc2', to represent this set of data belongs to mini challenge 2. As such, we will not import this column into the R environment.
+
+### 3.1.1. Load main file *mc2_challenge_graph.json*
+
+We will first load in the main file, *mc2_challenge_graph.json*, then extract the nodes and edges (links) information out.
+
+```{r}
+mc3 <- fromJSON("data/MC3.json")
+```
+
+#### 3.1.1.1. Extracting the nodes data.frame from mc3
+
+```{r}
+mc3_nodes <- as_tibble(mc3$nodes) %>%
+  select(id, country, type, product_services, revenue_omu)
+```
+
+#### 3.1.1.2. Extracting the edges (links) data.frame from mc3
+
+```{r}
+mc3_edges <- as_tibble(mc3$links) %>%
+  select(source, target, type)
+```
+
+#### 3.1.1.3. Examining the structure of *mc2_nodes* and *mc2_edges* data.frames using `glimpse()` of **dyplr**.
+
+```{r}
+glimpse(mc3_nodes)
+glimpse(mc3_edges)
+```
+
+```{r}
+### Exporting to CSV for closer examination
+write_csv(x = mc3_nodes, "data/generated/mc3_nodes.csv")
+write_csv(x = mc3_edges, "data/generated/mc3_edges.csv")
+write_rds(mc3_nodes, "data/generated/mc3_nodes.rds")
+write_rds(mc3_edges, "data/generated/mc3_edges.rds")
+```
+
+```{r}
+read_mc3_nodes <- read_rds("data/generated/mc3_nodes.rds")
+read_mc3_edges <- read_rds("data/generated/mc3_edges.rds")
+
+```
