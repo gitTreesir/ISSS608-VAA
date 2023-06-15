@@ -53,6 +53,8 @@ website:
             href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06d.html"
           - text: "Hands-on Exercise 6e"
             href: "Hands-on_Ex/Hands-on_Ex06/Hands-on_Ex06e.html"
+          - text: "Hands-on Exercise 7b"
+            href: "Hands-on_Ex/Hands-on_Ex07/Hands-on_Ex07b.html"
             
       - section: "In-Class Exercise"
         contents: 
@@ -69,6 +71,8 @@ website:
             href: "Take-home_Ex/Take-home_Ex01/Take-Home_Ex01.html"
           - text: "Take-Home Exercise 2"
             href: "Take-home_Ex/Take-home_Ex02/Take-Home_Ex02.html"
+          - text: "Take-Home Exercise 3"
+            href: "Take-home_Ex/Take-home_Ex03/Take-Home_Ex03.html"            
 format:
   html:
     theme: pulse
