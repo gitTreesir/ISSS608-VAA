@@ -47,12 +47,15 @@ The required R library packages are being loaded. For this exercise, we will mak
 -   **tidytext** for text mining and conversion of text to and from tidy formats.
 -   **skimr** provides summary statistics about variables in data frames, tibbles, data tables and vectors.
 -   **DT** provides an R interface to the JavaScript library DataTables that create interactive table on html page.
+-   **treemap**
+-   **plotly**
 
 The code chunk below uses `pacman::p_load()` to check if the above packages are installed. If they are, they will be loaded into the R environment.
 
 ```{r}
 pacman::p_load(jsonlite, tidygraph, ggraph, visNetwork, skimr,
-               tidyverse, graphlayouts, ggforce, DT, tidytext)
+               tidyverse, graphlayouts, ggforce, DT, tidytext,
+               treemap, treemapify, plotly)
 ```
 
 # 3. Data Preparation
@@ -76,14 +79,14 @@ mc3_data <- fromJSON("data/MC3.json")
 We will first extract the nodes info from `mc3_data`.
 
 ```{r}
-mc3_nodes <- as_tibble(mc3_data$nodes) %>%
+mc3_nodes_raw <- as_tibble(mc3_data$nodes) %>%
   select(id, country, type, product_services, revenue_omu)
 ```
 
 Then we will mutate the data by converting `id`, `country`, `type` and `product_services` into `character` data type, while `revenue_omu` will be converted to `numeric` data type. We will also rearrange the columns by using `select()`.
 
 ```{r}
-mc3_nodes <- mc3_nodes %>%
+mc3_nodes_raw <- mc3_nodes_raw %>%
   mutate(country = as.character(country),
          id = as.character(id),
          product_services = as.character(product_services),
@@ -97,14 +100,14 @@ mc3_nodes <- mc3_nodes %>%
 Next, we will extract the edges info from `mc3_data`.
 
 ```{r}
-mc3_edges <- as_tibble(mc3_data$links) %>%
+mc3_edges_raw <- as_tibble(mc3_data$links) %>%
   select(source, target, type)
 ```
 
 Then we will mutate the data by converting `source`, `target` and `type` into `character` data type. At the same time, we will compute the weights of the edges.
 
 ```{r}
-mc3_edges <- mc3_edges %>%
+mc3_edges_raw <- mc3_edges_raw %>%
   distinct() %>%
   mutate(source = as.character(source),
          target = as.character(target), 
@@ -115,26 +118,26 @@ mc3_edges <- mc3_edges %>%
   ungroup()
 ```
 
-#### 3.1.1.3. Examining the structure of *mc3_edges*
+#### 3.1.1.3. Examining the structure of *mc3_edges_raw*
 
 ```{r}
-skim(mc3_edges)
+skim(mc3_edges_raw)
 ```
 
 ::: {.callout-note title="Examination of the data structure"}
-The report above reveals that there is no missing values in all fields in `mc3_edges`.
+The report above reveals that there is no missing values in all fields in `mc3_edges_raw`.
 
 However, the `source` field has a maximum value of 700 (in lexicographic order), which seemed a little to lengthy, as compared to the `target` field which only has a maximum value of 28. With that, we will take a closer look at the data under the `source` field.
 :::
 
-#### 3.1.1.4. Examining the data distribution of *mc3_edges*
+#### 3.1.1.4. Examining the data distribution of *mc3_edges_raw*
 
 [**Source Field**]{.underline}
 
 We will take a closer look at the `source` field to investigate the reason of having a maximum value of 700 by counting the frequency of each unique value and take a peep of the actual value by listing the first 20 records to detect any anomalies in the data. We will list the string values in descending order based on its frequency.
 
 ```{r}
-mc3_edges_source_freq <- mc3_edges %>%
+mc3_edges_source_freq <- mc3_edges_raw %>%
   group_by(source) %>%
   summarise(freq_cnt = n()) %>%
   arrange(desc(freq_cnt)) %>%
@@ -154,7 +157,7 @@ We will have to break these lists further into single values before deriving the
 Firstly, we will have to extract all the records that contain an embedded list in the `source` field. We will make use of the `substr()` method to identify these records.
 
 ```{r}
-mc3_edges_list_in_source <- mc3_edges %>%
+mc3_edges_list_in_source <- mc3_edges_raw %>%
   filter(substr(source, 1, 2) %in% "c(") %>%
   ungroup()
 
@@ -199,9 +202,9 @@ broken_source <- broken_source %>%
   ungroup()
 ```
 
-[**Combining the list of entries with the rest of the mc3_edges**]{.underline}
+[**Combining the list of entries with the rest of the mc3_edges_raw**]{.underline}
 
-Now that we have extracted the list of entities (`broken_source`), we will combine the list with mc3_edges that do not have the embedded list (i.e. `mc3_edges_nolist`) and study the data.
+Now that we have extracted the list of entities (`broken_source`), we will combine the list with `mc3_edges_raw` that do not have the embedded list (i.e. `mc3_edges_nolist`) and study the data.
 
 In order to create `mc3_edges_nolist`, we will make use of `filter()` and `substr()` to identify those records that do not start with `"c("`. this will help to filter off those records that have the embedded list in the source field.
 
@@ -209,7 +212,7 @@ Once we combine the 2 lists, we will do a thorough cleaning to ensure that there
 
 ```{r}
 # Extract the list of records without the embedded list in source field
-mc3_edges_nolist <- mc3_edges %>%
+mc3_edges_nolist <- mc3_edges_raw %>%
   filter(!substr(source, 1, 2) %in% "c(") %>%
   distinct() %>%
   ungroup()
@@ -240,12 +243,12 @@ datatable(combined_mc3_edges,
 ::: {.callout-note title="Observations from Table 1"}
 Table 1 revealed that there are some of the individuals have multiple linkages to the same company, which we will need to probe further in order to understand the underlying relationships.
 
-In addition, we also noticed that there are some individuals that included salutations (i.e. `Dr.`, `Mr.`, `Ms.` and `Mrs.`), as part of their names. As part of the data cleaning, we will remove these salutations from their names before proceeding with any data analysis. 
+In addition, we also noticed that there are some individuals that included salutations (i.e. `Dr.`, `Mr.`, `Ms.` and `Mrs.`), as part of their names. As part of the data cleaning, we will remove these salutations from their names before proceeding with any data analysis.
 :::
 
 [**Removing the Salutations in target field**]{.underline}
 
-As mentioned in the observations from Table 1 above, we will proceed to remove the salutations (i.e. `Dr.`, `Mr.`, `Ms.` and `Mrs.`) from the names of the `target` field by using `gsub()`. 
+As mentioned in the observations from Table 1 above, we will proceed to remove the salutations (i.e. `Dr.`, `Mr.`, `Ms.` and `Mrs.`) from the names of the `target` field by using `gsub()`.
 
 ```{r}
 ## Remove Salutations
@@ -283,16 +286,13 @@ datatable(combined_mc3_edges_coy_count,
 From Table 2 above, it confirms that some of the individuals are Beneficial Owners or Company Contacts of multiple companies. We will investigate further into these individuals and the companies that they are in contact with in our analysis.
 :::
 
-
-
-
 The following charts presents the distribution of the above data, by the type of role that an individual plays in the Company (i.e. Beneficial Owner or Company Contact).
 
 ::: panel-tabset
 ### Number of Companies a Person Owns
 
 ```{r}
-# Get the count of the records in each bin
+# Get the count of the companies that a person own
 combined_mc3_edges_bo_gp <- combined_mc3_edges_coy_count %>%
   group_by(coy_count) %>%
   filter(type == "Beneficial Owner") %>%
@@ -316,6 +316,7 @@ plot_bo_cnt
 ### Number of Companies a Person is Contact
 
 ```{r}
+# Get the count of the companies that a person is a company contact
 combined_mc3_edges_cc_gp <- combined_mc3_edges_coy_count %>%
   group_by(coy_count) %>%
   filter(type == "Company Contacts") %>%
@@ -350,7 +351,7 @@ We will investigate further on these individuals and their respective companies 
 
 #### 3.1.1.6. Consolidating the list of Companies with reference to the Individuals with multiple companies
 
-From the analysis results above, we will extract out the respective companies that these individuals are involved in. Then we will gather the company information from *mc3_nodes*.
+From the analysis results above, we will extract out the respective companies that these individuals are involved in. Then we will gather the company information from *mc3_nodes_raw*.
 
 We will perform the following steps to get the list of unique companies:
 
@@ -412,12 +413,15 @@ mc3_nodes_combined <- mc3_nodes_combined %>%
     id %in% cc_above_4$target ~ "Company Contacts"
     )
   )
-
 ```
 
-# 4. Data Exploration & Visualisation
 
-We will build up the `tbl_graph` object in preparation to visualise the Company-Individual Relationship. 
+## 3.2. Initial Network Visualisation & Analysis
+
+[**Building the tbl_graph object for visualisation**]{.underline}
+
+We will build up the `tbl_graph` object in preparation to visualise the Company-Individual Relationship.
+
 ```{r}
 # Build tbl_graph using the valid nodes and edges 
 mc3_graph <- tbl_graph(nodes = mc3_nodes_combined,
@@ -442,14 +446,15 @@ edges_df <- mc3_graph %>%
   as_tibble()
 ```
 
-
-## 4.1. Visualisation of the Company-Individual Relationship
+[**Visualisation of the Company-Individual Relationship**]{.underline}
 
 [**Design Consideration**]{.underline}
 
 We will make use of the `group` attribute that we created in the earlier section to clearly identify the different types of nodes (Company, Beneficial Owner, Company Contacts).
 
-Mouse pointer hover action is also included on the graph so that the user can hover the mouse pointer over the graph to look at the possible different ‘groups’ of connectivity.
+For the ease of selecting a particular entity, a dropdown list with all the entities (nodes) present in the graph is provided. The list is also sorted in ascending order by using `arrange()`.
+
+Mouse pointer hover action is also included on the graph so that the user can hover the mouse pointer over the graph to look at the possible different 'groups' of connectivity.
 
 ```{r}
 # Preparing the data for visualisation
@@ -472,308 +477,296 @@ vis_nw
 ```
 
 ::: {.callout-note title="Observations"}
-The network graph above revealed:
+From the network graph above, we are able to see the relationships of the individual Beneficial Owner/Company Contact to the companies that they have linked. 
 
-1.    There are 4 individuals 
+We can also see that there is a significantly network which comprised of 7 smaller clusters, as shown in the image below.
 
+![](images/img2_overview_nw_coy_to_individual.png){fig-align="center" width="492"}
+
+The following 2 diagrams are zoomed in, to identify the key nodes in play.
+
+![](images/img3_overview_nw_coy_to_individual02.png){fig-align="center" width="490"}
+
+![](images/img3_overview_nw_coy_to_individual03.png){fig-align="center" width="488"}
+
+For the purpose of analysis, the labels of the connected nodes are listed below:
+
+-   Red-Coloured Node (Company Contacts): `David Smith`
+-   Yellow-Coloured Nodes (Beneficial Owners): 
+
+    -   `James Smith`
+    -   `Mary Williams`
+    -   `David Thomas`
+    -   `Jessica Brown`
+    -   `Michael Miller` and 
+    -   `Jennifer Smith`
+
+-   Connecting Nodes:
+
+    -   `Spanish Shrimp A/S Marine` (between `James Smith` and `David Smith`)
+    -   `Ocean Quest S.A. de C.V.` (between `David Smith` and `David Thomas`)
+    -   `Nagaland Sea Catch Ltd. Liability Co Logistics` (between `Mary Williams` and `David Thomas`)
+    -   `BlueTide GmbH & Co. KG` (betweeen `David Thomas` and `Jessica Brown`)
+    -   `West Fish  GmbH Transport` (between `Jessica Brown` and `Michael Miller`)
+    -   `Mar del Oeste -` (between `Jessica Brown` and `Jennifer Smith`)
+    
+We will need to pay special attention to the above-mentioned nodes. 
 :::
 
 
+## 3.3. Merging the information with *mc3_nodes_raw*
 
+Firstly, we will make use of the `setdiff()` function to identify the values that are missing in `mc3_nodes_raw`. `missing_source` will contain all the values that are present in `combined_mc3_sources$source` but not in `mc3_nodes_raw$id`.
 
+We will then create a tibble dataframe, containing this list, in preparation to combine it with `combined_mc3_sources` to form the eventual nodes dataframe for analysis. 
 
-```{r}
-# Getting the nodes info from mc3_nodes
-# mc3_nodes_company <- 
-#   subset(mc3_nodes, 
-#          id %in% combined_sources$source) %>%
-#   distinct()
-```
+As we do not have any information for `country`, `revenue_omu` and `product_services` fields, we will make use of `NA_character_` and `NA_real_` constants in R to pre-fill the missing values. 
 
-#### 3.1.1.5 Forming the various nodes data frames
-
-We will now form the various nodes data frame based on the info from `combined_mc3_edges`.
+We will also perform the similar steps for `combined_mc3_sources$target`.
 
 ```{r}
-# Forming the Company Nodes Data Frame
+# Identify missing values in the 'source' column of 'combined_mc3_sources'
+missing_source <- setdiff(combined_mc3_sources$source, mc3_nodes_raw$id)
 
-# Extract the unique list of source (i.e. company) from combined_mc3_edges
-unique_source_from_combined_mc3_edges <- unique(combined_mc3_edges$source)
+# Create a new dataframe for the missing 'source' values
+missing_source_df <- tibble(
+  id = missing_source,
+  country = rep(NA_character_, length(missing_source)),
+  type = rep("Company", length(missing_source)),
+  revenue_omu = rep(NA_real_, length(missing_source)),
+  product_services = rep(NA_character_, length(missing_source))
+)
 
-mc3_nodes_company <- subset(mc3_nodes, 
-                            id %in% unique_source_from_combined_mc3_edges)
-  
-mc3_nodes_company <- mc3_nodes_company %>%
-  distinct()
+# Identify missing values in the 'target' column of 'combined_mc3_sources'
+missing_target <- setdiff(combined_mc3_sources$target, mc3_nodes_raw$id)
 
-mc3_nodes_company
-```
+# Create a new dataframe for the missing 'target' values
+missing_target_df <- tibble(
+  id = missing_target,
+  country = rep(NA_character_, length(missing_target)),
+  type = combined_mc3_sources$type[match(missing_target,
+                                         combined_mc3_sources$target)],
+  revenue_omu = rep(NA_real_, length(missing_target)),
+  product_services = rep(NA_character_, length(missing_target))
+)
 
-```{r}
-# Forming the Beneficial Owner Nodes Data Frame
+# Filter the 'nodes' dataframe to keep only the 'id' values present in 'combined_mc3_sources'
+filtered_nodes <- mc3_nodes_raw %>%
+  filter(id %in% combined_mc3_sources$source | 
+         id %in% combined_mc3_sources$target)
 
-# Extract the unique list of source (i.e. Beneficial Owner) from combined_mc3_edges
-bo_df_from_combined_mc3_edges <- combined_mc3_edges %>%
-  filter(type == "Beneficial Owner") 
-
-unique_bo_from_combined_mc3_edges <- 
-  unique(bo_df_from_combined_mc3_edges$target) 
-
-
-mc3_nodes_bo <- subset(mc3_nodes,
-                       id %in%
-                         unique_bo_from_combined_mc3_edges)
-
-mc3_nodes_bo
-```
-
-```{r}
-# Forming the Company Contacts Nodes Data Frame
-
-# Extract the unique list of source (i.e. Company Contacts) from combined_mc3_edges
-cc_df_from_combined_mc3_edges <- combined_mc3_edges %>%
-  filter(type == "Company Contacts") 
-
-unique_cc_from_combined_mc3_edges <- 
-  unique(cc_df_from_combined_mc3_edges$target) 
-
-mc3_nodes_cc <- subset(mc3_nodes,
-                       id %in%
-                         cc_df_from_combined_mc3_edges)
-
-mc3_nodes_cc
+# Combine the missing source and target dataframes with the filtered_nodes dataframe above
+nodes_combined <- bind_rows(filtered_nodes, 
+                            missing_source_df, 
+                            missing_target_df)
 ```
 
 ```{r}
-id1 <- combined_mc3_edges %>%
-  select(source) %>%
-  rename(id = source)
-id2 <- combined_mc3_edges %>%
-  select(target) %>%
-  rename(id = target)
-
-# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
-
-mc3_nodes_extracted <- rbind(id1, id2) %>%
-  distinct()
+# Renaming the id column to label and
+# create a new column, id with the row_number()
+nodes_combined <- nodes_combined %>%
+  rename(label = id) %>%
+  mutate(id=row_number()) 
 ```
 
-[**Type Field**]{.underline}
 
-We will then look at the distribution of the `type` in the new `combined_mc3_edges`.
+## 3.4 Text Mining with tidytext
 
-[Design Considerations]{.underline}
+Now that we have the full list of nodes, We will use `unnest_token()` of **tidytext** to perform tokenisation and split text in product_services field into words. By default, punctuation has been stripped and the tokens will be converted to lowercase before comparison. Hence, we will stick to the default configurations, which is sufficient for our word comparison.
 
-The count for each type will be displayed at the top of the bar for easy reference.
-
-::: panel-tabset
-### Distribution of Type Field
-
-```{r}
-#| echo: false
-
-# Get the count of the records in each bin
-combined_mc3_edges_gp <- combined_mc3_edges %>%
-  group_by(type) %>%
-  summarise(cnt = n())
-
-# Create a distribution with bar chart using ggplot2
-plot_type <- ggplot(combined_mc3_edges_gp, aes(x = type, y = cnt)) +
-  geom_bar(stat = "identity", fill = "deepskyblue3") +
-  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
-  labs(x = "\nType", y = "Count\n", 
-       title = "Distribution of Type Field") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-plot_type
-```
-
-### Code Chunk
-
-```{r}
-#| eval: false
-#| code-fold: false
-
-# Get the count of the records in each bin
-combined_mc3_edges_gp <- combined_mc3_edges %>%
-  group_by(type) %>%
-  summarise(cnt = n())
-
-# Create a distribution with bar chart using ggplot2
-plot_type <- ggplot(combined_mc3_edges_gp, aes(x = type, y = cnt)) +
-  geom_bar(stat = "identity", fill = "deepskyblue3") +
-  geom_text(aes(label = cnt), vjust = -0.5, color = "black") +
-  labs(x = "\nType", y = "Count\n", 
-       title = "Distribution of Type Field") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5)) 
-
-plot_type
-```
-:::
-
-::: {.callout-tip title="Examination of Type field"}
-From the above chart, we noticed that there are 2 types of roles presented in the data: `Beneficial Owner` (17,303 records) and `Company Contacts` (7,628 records).
-:::
-
-#### 3.1.1.5. Examining the structure of *mc3_nodes* data.frames using `skim()` of **skimr** package.
-
-```{r}
-skim(mc3_nodes)
-```
-
-::: {.callout-tip title="Examination of the data structure"}
-The report above reveals that there are 21,515 missing values in `revenue_omu` under `mc3_nodes`.
-:::
-
-#### 3.1.1.6. Examining the data distribution of *mc3_nodes*
-
-```{r}
-ggplot(data = mc3_nodes,
-       aes(x = type)) +
-  geom_bar()
-
-```
-
-::: {.callout-tip title="Examination of the data structure"}
-From the above chart, we noticed that there are 3 types of roles presented in the `mc3_nodes` dataset: `Beneficial Owner`, `Company` and `Company Contacts`.
-:::
-
-## 3.2. Initial Network Visualisation & Analysis
-
-### 3.2.1. Building network model with tidygraph
-
-```{r}
-id1 <- mc3_edges %>%
-  select(source) %>%
-  rename(id = source)
-id2 <- mc3_edges %>%
-  select(target) %>%
-  rename(id = target)
-mc3_nodes1 <- rbind(id1, id2) %>%
-  distinct() 
-# %>%
-#   left_join(mc3_nodes,
-#             unmatched = "drop")
-```
-
-```{r}
-mc3_graph <- tbl_graph(nodes = mc3_nodes1,
-                       edges = mc3_edges,
-                       directed = FALSE) %>%
-  mutate(betweenness_centrality = centrality_betweenness(),
-         closeness_centrality = centrality_closeness())
-```
-
-```{r}
-mc3_graph %>%
-  filter(betweenness_centrality >= 100000) %>%
-ggraph(layout = "fr") +
-  geom_edge_link(aes(alpha=0.5)) +
-  geom_node_point(aes(
-    size = betweenness_centrality,
-    colors = "lightblue",
-    alpha = 0.5)) +
-  scale_size_continuous(range=c(1,10))+
-  theme_graph()
-
-```
-
-## 3.3 TEXT SENSING with tidytext
-
-### 3.3.1. Word Count
-
-We will fist calculate the number of times the word `fish` appeared in the field product_services.
-
-```{r}
-# mc3_nodes %>% 
-#     mutate(n_fish = str_count(product_services, "fish")) 
-```
-
-### 3.2.2. Tokenisation
-
-We will use `unnest_token()` of **tidytext** to split text in product_services field into words. By default, punctuation has been stripped and the tokens will be converted to lowercase before comparison.
 
 ```{r}
 # This is a very basic code of unnest_token()
-# tidy_nodes <- mc3_nodes %>%
-#   unnest_tokens(word,
-#                 product_services)
+nodes_combined_unnest <- nodes_combined %>%
+  unnest_tokens(word, product_services)
 ```
 
-We will then visualise the words extracted.
+We will then visualise the words extracted by selecting the top 30 words. 
 
 ```{r}
-# tidy_nodes %>%
-#   count(word, sort = TRUE) %>%
-#   top_n(15) %>%
-#   mutate(word = reorder(word, n)) %>%
-#   ggplot(aes(x = word, y = n)) +
-#   geom_col() +
-#   xlab(NULL) +
-#   coord_flip() +
-#       labs(x = "Count",
-#       y = "Unique words",
-#       title = "Count of unique words found in product_services field")
+nodes_combined_unnest %>%
+  count(word, sort = TRUE) %>%
+  top_n(30) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+      labs(x = "Count",
+      y = "Unique words",
+      title = "Count of unique words found in product_services field")
 ```
-
+:::{.callout-note title="Observations"}
 The bar chart reveals that the unique words contains some words that may not be useful to use. For instance "a" and "to". In the word of text mining we call those words stop words. We will remove these words from the analysis as they are fillers used to compose a sentence.
 
-In addition, there is also a high number of the words `character`, `0`, `unknown`, `products`, `including`, `services`, `related`, `materials`, `equipment`, `accessories`, `frozen`, `systems`, `freight`, `industrial`, `processing`, `offers`, `machines`, `canned`, `transportation`, `logistics`, `supplies`, `range` which are not representative of the products_services field. Hence, we will add them into the `stop_words` dataset in **tidytext** so that they can be filtered out.
+In addition, there is also a high number of the words `NA`, `character`, `0`, `unknown`, `products` which are not representative of the products_services field. Hence, we will add them into the `stop_words` dataset in **tidytext** so that they can be filtered out.
+:::
 
-### 3.2.4. Adding stop words into the tidytext `stop_words` dataset
+### 3.4.1. Adding stop words into the tidytext `stop_words` dataset
+
+We will first retrieve the list of stop_words dataset. Next, we will create a list `additional_stop_words`, that will contains the additional words that we want to remove. 
+
+We will then use `bind_rows()` to add the `additional_stop_words` into the `stop_words` dataset. We will call `distinct()` function to make sure that there is no duplicate stop_words in the dataset.
 
 ```{r}
 # Retrieve the current stop_words dataset
-# data(stop_words)
+data(stop_words)
 
 # Create a vector containing the additional stop words
-# additional_stop_words <- c("NA", "character", "0", "unknown", "products",
-#                            "including", "services", "related", "materials",
-#                            "equipment", "accessories", "frozen", "systems",
-#                            "freight", "industrial", "processing", "offers",
-#                            "machines", "canned", "transportation", "logistics",
-#                            "supplies", "range")
+additional_stop_words <- c(NA_character_, "character", "0", 
+                           "unknown", "products")
 
 # Add the additional stop words to the stop_words dataset and remove any duplicate entries
-# stop_words <- bind_rows(stop_words, tibble(word = additional_stop_words)) 
-# stop_words <- distinct(stop_words)
+stop_words <- bind_rows(stop_words, 
+                        tibble(word = additional_stop_words))
 
+stop_words <- distinct(stop_words)
 ```
 
-NOTE: - there are also `NA` for revenue_omu field - Beneficial Owner will be linked to Company; Company Contacts will be linked to Company. Technically, there should not be any linkages between Beneficial Owner and Company Contacts.
+**NOTE: - there are also `NA` for revenue_omu field - Beneficial Owner will be linked to Company; Company Contacts will be linked to Company. Technically, there should not be any linkages between Beneficial Owner and Company Contacts.**
 
-### 3.2.5. Removing stop words
+### 3.4.2. Removing the Stop Words
 
 ```{r}
-# tidy_nodes_no_stopwords <- tidy_nodes %>%
-#   anti_join(stop_words)
+nodes_combined_no_stopwords <- nodes_combined_unnest %>%
+  anti_join(stop_words)
 ```
 
 We can then visualise the words after removing the stop words.
 
 ```{r}
-# tidy_nodes_no_stopwords %>%
-#   count(word, sort = TRUE) %>%
-#   top_n(15) %>%
-#   mutate(word = reorder(word, n)) %>%
-#   ggplot(aes(x = word, y = n)) +
-#   geom_col() +
-#   xlab(NULL) +
-#   coord_flip() +
-#       labs(x = "Count",
-#       y = "Unique words",
-#       title = "Count of unique words found in product_services field")
+nodes_combined_no_stopwords %>%
+  count(word, sort = TRUE) %>%
+  top_n(30) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+      labs(x = "Count",
+      y = "Unique words",
+      title = "Count of unique words found in product_services field")
 ```
 
+### 3.4.3. Retrieving the nodes that contain fishing-related keywords
+
+In order to find the companies that are related to fishing, we will extract all the nodes that contain fishing-related keywords.
+
 ```{r}
-# This is more sophisticated to sift out the data
-# tidy_nodes <- mc3_nodes %>%
-#   unnest_tokens(word, product_services,
-#                 to_lower = TRUE,      # convert all the lowercase before comparison
-#                 strip_punct = TRUE)   # exclude all the punctuation 
+# build the nodes table
+nodes_with_fishing <- nodes_combined_no_stopwords %>%
+  filter(word %in% c("fish", "fishing", "seafood", "seafoods", "salmon",
+                     "shrimp", "prawn", "crabs", "squid", "oysters",
+                     "clams", "trout", "cod", "lobster", "catfish", 
+                     "mackerel", "herring", "pollock", "tuna", 
+                     "trout", "finfish", "fresh")) %>%
+  select(id, label, country, type, revenue_omu, word) %>%
+  group_by(id, label, country, type, revenue_omu, word) %>%
+  arrange(label) %>%
+  ungroup()
+
+
+# Combine the words for the same id using aggregate(), so that we will end up with 1 record per node
+combined_words_nodes_fishing <- nodes_with_fishing %>%
+  group_by(id) %>%
+  summarize(product_services = paste(unique(word), collapse = ","),
+            label = unique(label), country = unique(country), 
+            type = unique(type), revenue_omu = unique(revenue_omu),
+            .groups = "drop") %>%
+  select(label, country, type, revenue_omu, product_services) %>%
+  rename(id = label)
+
+# build the edges table based on the nodes in nodes_combined_fishing
+edges_fishing <- combined_mc3_sources %>%
+  filter(source %in% combined_words_nodes_fishing$id |
+         target %in% combined_words_nodes_fishing$id)  
+
 ```
+
+
+
+```{r}
+#nodes_combined_fishing <- nodes_combined_fishing %>%
+combined_words_nodes_fishing <- combined_words_nodes_fishing %>%
+  rename(label = id) %>%
+  mutate(id=row_number())
+
+edges_fishing <- edges_fishing %>%
+  rename(from = source) %>%
+  rename(to = target)
+```
+
+
+# 4. Data Exploration & Visualisation
+
+## 4.1. Visualising Fishing-Related Companies and their Beneficial Owners and Company Contacts
+
+For this section, we will visualise the relationship of fishing-related companies with their beneficial owners and company contacts. 
+
+```{r}
+id1_fish <- edges_fishing %>%
+  select(from) %>%
+  rename(id = from)
+
+id2_fish <- edges_fishing %>%
+  select(to) %>%
+  rename(id = to)
+
+# create a new nodes data table derived from the source and target of edge data. This would ensure that only nodes with connections will be included.
+fish_nodes_combined <- rbind(id1_fish, id2_fish) %>%
+  distinct()
+
+fish_nodes_combined <- fish_nodes_combined %>%
+  mutate( group = case_when(
+    id %in% edges_fishing$from ~ "Company",
+    id %in% edges_fishing$to & 
+      edges_fishing$type == "Beneficial Owner" ~ "Beneficial Owner",
+    id %in% edges_fishing$to & 
+      edges_fishing$type == "Company Contacts" ~ "Company Contacts"
+    )
+  )
+```
+
+
+```{r}
+visNetwork(fish_nodes_combined,
+           edges_fishing,
+           main = "Network Graph of Fishing-Related Entities") %>%
+  visIgraphLayout(layout = "layout_with_fr") %>%
+  visLayout(randomSeed = 1234) %>%
+  visOptions(highlightNearest = list(enabled = T, degree = 2, hover = T),
+             nodesIdSelection = TRUE) %>%
+  visNodes(id = fish_nodes_combined$label, size=50) %>%
+  visLegend(width = 0.1, position = "right", main = "Group") %>%
+  visEdges(smooth = list(enabled = TRUE, type = "curvedCW"))
+```
+
+
+## 4.2. Understanding the Fishing-related Companies - Country
+
+For this section, we will find out more about the fishing-related companies, particularly on the country that they belong.
+
+```{r}
+#| fig-width: 10
+# Computing the count of companies by country
+combined_words_nodes_fishing_ctry <- combined_words_nodes_fishing %>%
+  group_by(country) %>%
+  summarize(ctry_cnt = n())
+
+ggplot_tm <- ggplot(combined_words_nodes_fishing_ctry, 
+       aes(area = ctry_cnt, label = country, fill = country)) +
+  geom_treemap() +
+  geom_treemap_text(aes(label = paste(country, "\nCount:", ctry_cnt)),
+                    size = 10, hjust = 0.5, vjust = 0.5) +
+  labs(title = "Countries of the fishing-related Companies") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot_tm
+```
+
+
+
 
 ```{r}
 #| eval: false
