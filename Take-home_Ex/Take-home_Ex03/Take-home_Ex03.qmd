@@ -25,7 +25,6 @@ With reference to the [Mini-Challenge 3](https://vast-challenge.github.io/2023/M
 
 Use visual analytics to identify anomalies in the business groups present in the knowledge graph.
 
-
 ## 1.2. Data Source
 
 For this task, we will make use of the *MC3.json* provided for the data analysis and visualisation.
@@ -888,7 +887,7 @@ treemap(nodes_fishing_prod_ctry,
 ```
 
 ::: {.callout-note title="Observations"}
-If we were to look from the perspective of revenue_omu, From the revenue_omu treemap above, it is interesting to notice that the bigger revenue earners are from `ZH`, `Rio Isla` and `Oceanus`. 
+If we were to look from the perspective of revenue_omu, From the revenue_omu treemap above, it is interesting to notice that the bigger revenue earners are from `ZH`, `Rio Isla` and `Oceanus`.
 
 It was noted that there are 6 domineering companies in `ZH` which have the highest revenues. These companies were not highlighted in any of the earlier analysis. We will investigate further into `Morgan Group`, the highest revenue earner, in attempt to identify anomalies.
 :::
@@ -1009,7 +1008,7 @@ First of all, we will extract the companies that we want by using `filter()`. We
 4.  As it is possible that there are multiple records for one company (due to different `country`, `revenue_omu` and `products_services`), the bars for each company are stacked up, with stacked segment representing the different variance of the company, with its `country` and `revenue_omu` will also be shown on the graph.
 5.  Additional information of the company such as the `country`, `revenue_omu` and `total_revenue` are included as part of the tooltip, when the mouse hovers to the respective bars.
 6.  Information on the `product_services` will not be included as part of the tooltip, as the data is too lengthy and might be difficult to read. Instead, the information will be included in the datatable below the plot.
-7.  For easier readability, included thousand separators (commas) and rounded to 2 decimal places for `revenue_omu` and `total_revenue`. 
+7.  For easier readability, included thousand separators (commas) and rounded to 2 decimal places for `revenue_omu` and `total_revenue`.
 8.  Lastly, as the datatable is showing all the information of the companies, it was deemed unsuitable to be placed beside the plot.
 
 ```{r}
@@ -1078,7 +1077,7 @@ First of all, we will extract the companies that we want by using `filter()`. We
 4.  As it is possible that there are multiple records for one company (due to different `country`, `revenue_omu` and `products_services`), the bars for each company are stacked up, with stacked segment representing the different variance of the company, with its `country` and `revenue_omu` will also be shown on the graph.
 5.  Additional information of the company such as the `country`, `revenue_omu` and `total_revenue` are included as part of the tooltip, when the mouse hovers to the respective bars.
 6.  Information on the `product_services` will not be included as part of the tooltip, as the data is too lengthy and might be difficult to read. Instead, the information will be included in the datatable below the plot.
-7.  For easier readability, included thousand separators (commas) and rounded to 2 decimal places for `revenue_omu` and `total_revenue`. 
+7.  For easier readability, included thousand separators (commas) and rounded to 2 decimal places for `revenue_omu` and `total_revenue`.
 8.  Lastly, as the datatable is showing all the information of the companies, it was deemed unsuitable to be placed beside the plot.
 
 ```{r}
@@ -1147,15 +1146,13 @@ In terms of Beneficial Owners, it was revealed that `Dale Rhodes` and `Cynthia M
 
 With the above information, it is suggested to put `Aqua Aura SE Marine life` under [watchlist for anomalies]{.underline}, until there are additional information about the company and/or its beneficial owners and company contacts.
 
-
-[**Congo Rapids Ltd. Corporation**]{.underline} 
+[**Congo Rapids Ltd. Corporation**]{.underline}
 
 From the fishing-related products and services dataset, `Congo Rapids Ltd. Corporation` only deals with `salmon`. When we compared this with the results extracted from the raw dataset, it was observed that `Congo Rapids Ltd. Corporation` only provides products related to children's accessories (stationery), which contributed to its main revenue.
 
-[*Reference to Section 3.1.2.1 - Visualisation of the Relationship of Company to Individual*]{.underline}
-We also observed that `Congo Rapids Ltd. Corporation` has multiple beneficial owners, and one of them, `Jeremy Lee`, is also a beneficial owner of `Niger Bend AS Express`, which was listed as a `Cruise ship holidays` company. Unfortunately, we do not have any other information about `Jeremy Lee` and hence we could not determine whether the 2 companies nor `Jeremy Lee` are involved in any suspicious illegal fishing activities.
+[*Reference to Section 3.1.2.1 - Visualisation of the Relationship of Company to Individual*]{.underline} We also observed that `Congo Rapids Ltd. Corporation` has multiple beneficial owners, and one of them, `Jeremy Lee`, is also a beneficial owner of `Niger Bend AS Express`, which was listed as a `Cruise ship holidays` company. Unfortunately, we do not have any other information about `Jeremy Lee` and hence we could not determine whether the 2 companies nor `Jeremy Lee` are involved in any suspicious illegal fishing activities.
 
-However, it is worth mentioning to note that `Congo Rapids Ltd. Corporation` is from the country `Brindivaria`, which is not one of the more common countries for companies with fishing-related businesses. 
+However, it is worth mentioning to note that `Congo Rapids Ltd. Corporation` is from the country `Brindivaria`, which is not one of the more common countries for companies with fishing-related businesses.
 
 From the above information gathered, it is suggested to put `Congo Rapids Ltd. Corporation`, `Niger Bend AS Express` and `Jeremy Lee` under [watchlist for anomalies]{.underline}, until there are additional information about them.
 :::
@@ -1169,15 +1166,18 @@ Even though we could not confidently identify anomalies from the analysis, we wo
 -   `Congo Rapids Ltd. Corporation`, `Niger Bend AS Express` and `Jeremy Lee` (From Section 4.3: `Congo` is not from one of the more common countries and its primary source revenue is not related to fishing).
 
 
-There were also a number of data quality issues that hindered the data analysis. For example:
+[**Data Quality Issues**]{.underline}
+
+There were also a number of data quality issues, such data inconsistency and unclean data that hindered the data analysis.
 
 [Node Records]{.underline}
 
--   Unclean Data comprises of missing values (`NA`), `unknown` and `character(0)` in `revenue_omu` and `product_services` fields.
+-   Missing values (`NA`), `unknown` and `character(0)` in `revenue_omu` and `product_services` fields.
 -   Not all records are fishing-related.
+-   Large number of Beneficial Owners and Company Contacts could not be found here, even though they were present in the Edge records.
 
 [Edges Records]{.underline}
 
 -   `source` field containing sub-lists.
 -   `target` field containing salutations of some individuals.
-
+-   Records found here could not be found in Nodes Records.
